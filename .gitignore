@@ -12,3 +12,6 @@ docs/research/**/raw/
 # tooling
 next-env.d.ts
 *.log
+
+# research outputs that contain card text or are large
+docs/research/analysis/**/out/
