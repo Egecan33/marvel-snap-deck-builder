@@ -1,0 +1,82 @@
+[
+  {
+    "id": "ranked",
+    "name": "Ranked",
+    "verified": true,
+    "constructed": true,
+    "banned": [],
+    "listDate": null,
+    "sourceUrl": "https://outof.games/realms/marvel-snap/guides/255-how-to-play-marvel-snap/",
+    "stale": false,
+    "note": "Standard deck rules: exactly 12 different cards from the released pool. No ban list was found in any official 2026 source (docs/research/rules-and-formats.md §1.2)."
+  },
+  {
+    "id": "sanctum-showdown",
+    "name": "Sanctum Showdown",
+    "verified": true,
+    "constructed": true,
+    "banned": [
+      "Annihilus", "CaptainMarvel", "Debrii", "Dracula", "Galactus", "GreenGoblin", "Hobgoblin", "Juggernaut", "InvisibleWoman", "Kang",
+      "MBaku", "Magik", "Malekith", "Martyr", "Mysterio", "Quake", "Storm", "Supergiant", "Viper"
+    ],
+    "listDate": "2025",
+    "sourceUrl": "https://marvelsnap.com/new-limited-time-mode-sanctum-showdown/",
+    "stale": true,
+    "note": "Ban list from the official launch post of the mode's first run (2025; the page has been edited since and its exact date was not captured). Later runs may use a different list: check the in-game banned filter. Card ids were resolved against the synced card table on 2026-11-12."
+  },
+  {
+    "id": "high-voltage",
+    "name": "High Voltage",
+    "verified": false,
+    "constructed": true,
+    "banned": [],
+    "listDate": null,
+    "sourceUrl": null,
+    "stale": false,
+    "note": "The mode has a ban list (the game shows a banned filter), but no source publishes it. Decks are not checked for this mode."
+  },
+  {
+    "id": "grand-arena",
+    "name": "Grand Arena",
+    "verified": false,
+    "constructed": true,
+    "banned": [],
+    "listDate": null,
+    "sourceUrl": null,
+    "stale": false,
+    "note": "The mode has deck validity rules (the game shows an invalid-deck icon), but no source publishes them. Decks are not checked for this mode."
+  },
+  {
+    "id": "team-clash",
+    "name": "Team Clash",
+    "verified": false,
+    "constructed": true,
+    "banned": [],
+    "listDate": null,
+    "sourceUrl": null,
+    "stale": false,
+    "note": "Uses card teams and has a banned icon in the game; the rules and the list are not published. Decks are not checked for this mode."
+  },
+  {
+    "id": "deadpools-diner",
+    "name": "Deadpool's Diner",
+    "verified": false,
+    "constructed": true,
+    "banned": [],
+    "listDate": null,
+    "sourceUrl": null,
+    "stale": false,
+    "note": "Deck rules for this mode are not confirmed by any source. Decks are not checked for this mode."
+  },
+  {
+    "id": "draft",
+    "name": "Draft",
+    "verified": false,
+    "constructed": false,
+    "banned": [],
+    "listDate": null,
+    "sourceUrl": "https://outof.games/news/9600-marvel-snap-is-getting-a-draft-mode-on-august-24/",
+    "stale": false,
+    "note": "Not a collection deck: cards are drafted inside the mode, duplicates are allowed and ownership is not required. Snap Forge does not build Draft decks."
+  }
+]

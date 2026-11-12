@@ -1,0 +1,127 @@
+{
+  "Annihilus": {
+    "rawText": "<b>On Reveal:</b> Your cards with Power below  switch sides. Destroy\nthose that can't.",
+    "text": "On Reveal: Your cards with Power below 0 switch sides. Destroy those that can't.",
+    "source": "attributes.data.AssignedPower = 0"
+  },
+  "AntiVenom": {
+    "rawText": "<b>On Reveal:</b> Set the Cost and Power of your deck's top card to .",
+    "text": "On Reveal: Set the Cost and Power of your deck's top card to 0.",
+    "source": "attributes.data.AssignedPower = 0"
+  },
+  "ArchangelHorseman": {
+    "rawText": "<sprite=4> <b>Objective:</b> Your cards are destroyed 4 times <sprite=0> Resurrect one here with +5 Power. <color=#d040ff>(/4)</color>",
+    "text": "Objective: Your cards are destroyed 4 times -> Resurrect one here with +5 Power. (0/4)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "BlackSwan": {
+    "rawText": "<b>Activate:</b> Until the end of next turn, your 1-Cost cards cost .",
+    "text": "Activate: Until the end of next turn, your 1-Cost cards cost 0.",
+    "source": "attributes.data.AssignedCost = 0"
+  },
+  "CalibanHorseman": {
+    "rawText": "<sprite=4> <b>Objective:</b> Have 3 cards that are 4-Cost or more in play <sprite=0> Afflict the highest-Cost enemy card with -6 Power. <color=#d040ff>(/3)</color>",
+    "text": "Objective: Have 3 cards that are 4-Cost or more in play -> Afflict the highest-Cost enemy card with -6 Power. (0/3)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "EnSabahNur": {
+    "rawText": "<sprite=4> <b>Objective:</b> Have a full front row at each location <sprite=0> Transform into Apocalypse, Celestials' Chosen. <color=#d040ff>(/6)</color>",
+    "text": "Objective: Have a full front row at each location -> Transform into Apocalypse, Celestials' Chosen. (0/6)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "GambitHorseman": {
+    "rawText": "<sprite=4> <b>Objective:</b> Play 6 total Cost of created cards <sprite=0> Randomly destroy up to 3 total Cost of enemy cards. <color=#d040ff>(/6)</color>",
+    "text": "Objective: Play 6 total Cost of created cards -> Randomly destroy up to 3 total Cost of enemy cards. (0/6)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "HellcowFracturedFrontier": {
+    "rawText": "<b>End of Turn:</b> Afflict ALL other cards here with -1 Power. Then destroy your other cards here with  Power or less.",
+    "text": "End of Turn: Afflict ALL other cards here with -1 Power. Then destroy your other cards here with 0 Power or less.",
+    "source": "attributes.data.AssignedPower = 0"
+  },
+  "IronPatriot": {
+    "rawText": "<b>On Reveal:</b> Add a random -Cost or more card to your hand. If you’re winning here after next turn, give it -3 Cost.",
+    "text": "On Reveal: Add a random 4-Cost or more card to your hand. If you're winning here after next turn, give it -3 Cost.",
+    "source": "attributes.data.TokenEnergyCost = 4"
+  },
+  "JaneFoster": {
+    "rawText": "<b>On Reveal:</b> Draw all cards that cost  from your deck.",
+    "text": "On Reveal: Draw all cards that cost 0 from your deck.",
+    "source": "attributes.data.TargetCardCost = 0"
+  },
+  "JuggernautHorseman": {
+    "rawText": "<sprite=4> <b>Objective:</b> Have 6 different Powers among your other cards in play <sprite=0>\n+6 Power. <color=#d040ff>(/6)</color>",
+    "text": "Objective: Have 6 different Powers among your other cards in play -> +6 Power. (0/6)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "PolarisHorseman": {
+    "rawText": "<sprite=4> <b>Objective:</b> Cards in play are afflicted with -5 Power <sprite=0> Put a card from your hand here. <color=#d040ff>(/5)</color>",
+    "text": "Objective: Cards in play are afflicted with -5 Power -> Put a card from your hand here. (0/5)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "Prowler": {
+    "rawText": "<b>On Reveal:</b> Add 2 Thief’s Tools to your hand. Set their Costs to  if a card moved last turn.",
+    "text": "On Reveal: Add 2 Thief's Tools to your hand. Set their Costs to 0 if a card moved last turn.",
+    "source": "attributes.data.AssignedCost = 0"
+  },
+  "Sabretooth": {
+    "rawText": "<b>When Destroyed:</b> Return this to your hand. It costs .",
+    "text": "When Destroyed: Return this to your hand. It costs 0.",
+    "source": "attributes.data.AssignedCost = 0"
+  },
+  "ScarletWitchQueenOfChaos": {
+    "rawText": "<b>Start of Turn:</b> Add an EXTREMELY random skill to your hand.\nIt costs  this turn.",
+    "text": "Start of Turn: Add an EXTREMELY random skill to your hand. It costs 0 this turn.",
+    "source": "attributes.data.AssignedCost = 0"
+  },
+  "SeleneHorseman": {
+    "rawText": "<sprite=4> <b>Objective:</b> Have 3 cards with no abilities in play <sprite=0> Steal 5 Power from an enemy card here. <color=#d040ff>(/3)</color>",
+    "text": "Objective: Have 3 cards with no abilities in play -> Steal 5 Power from an enemy card here. (0/3)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "ShouLao": {
+    "rawText": "<b>On Reveal:</b> Give the last character you played +2 Power for each turn you played 2 or more cards. (+)",
+    "text": "On Reveal: Give the last character you played +2 Power for each turn you played 2 or more cards. (+0)",
+    "source": "attributes.data.AssignedPower = 0"
+  },
+  "SinisterSix": {
+    "rawText": "<b>Game Start:</b> The first 6 characters you draw are EVIL! After you play them all, merge them into this and add this to the last one's location. <i>(/6)</i>",
+    "text": "Game Start: The first 6 characters you draw are EVIL! After you play them all, merge them into this and add this to the last one's location. (0/6)",
+    "source": "attributes.data.DrawCount = 0"
+  },
+  "SpiderManNoir": {
+    "rawText": "<b>On Reveal:</b> Set the top character of your deck's Power to 8. If your other cards in play cost exactly 8 total, add it here. (/8)",
+    "text": "On Reveal: Set the top character of your deck's Power to 8. If your other cards in play cost exactly 8 total, add it here. (0/8)",
+    "source": "attributes.data.TargetCardCost_2 = 0"
+  },
+  "StormHorseman": {
+    "rawText": "<sprite=4> <b>Objective:</b> End 2 turns in a row with unspent Energy <sprite=0> Give your other cards here and in your hand +2 Power. <color=#d040ff>(/2)</color>",
+    "text": "Objective: End 2 turns in a row with unspent Energy -> Give your other cards here and in your hand +2 Power. (0/2)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "Stryfe": {
+    "rawText": "<sprite=4> <b>Objective:</b> Play 3 <b>On Reveal</b> cards <sprite=0> Use the highest-Cost <b>On Reveal</b> in your hand. <color=#d040ff>(/3)</color>",
+    "text": "Objective: Play 3 On Reveal cards -> Use the highest-Cost On Reveal in your hand. (0/3)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "Swarm": {
+    "rawText": "<b>When Discarded:</b> Add two copies of this that cost  to your hand.",
+    "text": "When Discarded: Add two copies of this that cost 0 to your hand.",
+    "source": "attributes.data.TokenEnergyCost = 0"
+  },
+  "ThorDoomsday": {
+    "rawText": "<color=#ff2c2c>!</color><b>On Reveal:</b> Shuffle Stormbreaker Doomsday into your deck.\n<sprite=4><b>Objective:</b> Your cards in play have at least 10 increased Power <sprite=0> Add the lowest-Cost card from your deck to here. <color=#d040ff>(/10)</color>",
+    "text": "On Reveal: Shuffle Stormbreaker Doomsday into your deck. Objective: Your cards in play have at least 10 increased Power -> Add the lowest-Cost card from your deck to here. (0/10)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "VampireDeaconFrost": {
+    "rawText": "<sprite=4> <b>Objective:</b> 3 of your cards have stolen Power <sprite=0> Transform into Crimson Behemoth. <color=#d040ff>(/3)</color>",
+    "text": "Objective: 3 of your cards have stolen Power -> Transform into Crimson Behemoth. (0/3)",
+    "source": "attributes.data.ObjectiveProgress = 0"
+  },
+  "WeaponXWolverine": {
+    "rawText": "After one of your other cards is destroyed, +1 Power. After every 3rd time, improve this effect by 1. <i>(/3)</i>",
+    "text": "After one of your other cards is destroyed, +1 Power. After every 3rd time, improve this effect by 1. (0/3)",
+    "source": "attributes.data.ModifiedCardCount_2 = 0"
+  }
+}
