@@ -2,7 +2,7 @@
 
 This file is the single place a new session reads to continue the build if the previous one was cut off. Update it at every stage boundary, in the same commit as the stage's work.
 
-Last updated: 2026-11-12. Research written, design and plan committed. Research verified. Stage 2 (plan Tasks 1-2) done; next is plan Task 3.
+Last updated: 2026-11-12. **Paused by the owner** ("stop this for now, continue when Riftbound is finished"). Stages 0-2 done. Stage 3 was stopped just after Tasks 3 and 4 started; neither is committed, and any files they left under `src/engine/rules`, `src/engine/io`, `src/engine/text` or `tests/` are unfinished drafts: review or discard them, then restart Stage 3 at Task 3 and Task 4. Do not resume until the owner says Riftbound Forge is finished.
 
 ## Owner's decisions (do not re-ask)
 
@@ -24,7 +24,7 @@ Last updated: 2026-11-12. Research written, design and plan committed. Research 
 | 0 | Research (5 topics) with one fact-check pass, files in `docs/research/` | done; all five files carry a verification log |
 | 1 | Design doc `docs/superpowers/specs/2026-11-12-snap-forge-design.md` and plan `docs/superpowers/plans/2026-11-12-snap-forge.md` | done |
 | 2 | Foundation and data: plan Tasks 1-2 | done (scaffold, sync steps, fixtures; `pnpm sync` was run for build 58.15.3) |
-| 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | not started |
+| 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | paused at the start (Tasks 3 and 4 stopped, uncommitted) |
 | 4 | API and UI: plan Tasks 10-11 | not started |
 | 5 | End-to-end tests and calibration: plan Task 12 | not started |
 | 6 | Final review by driving the real UI and looking at screenshots | not started |
