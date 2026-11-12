@@ -1,7 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createCardDb, createMetaIndex, toCard, type UntappedCardRow } from '@/engine/carddb';
+import { computeNetwork } from '@/engine/features/compute';
 import type { TextFix } from '@/engine/text/clean';
+import { loadOverrides, type Overrides } from '@/engine/text/overrides';
 import type { Card, CardDb, CardEdge, CardFeatures, FormatDef, MetaArchetype, MetaIndex, MetaInfo, MetaList, PlanDef } from '@/engine/types';
 
 const FIXTURES = fileURLToPath(new URL('../fixtures/', import.meta.url));
@@ -29,14 +31,18 @@ export const fixtureRows = (): readonly UntappedCardRow[] => cards().cards;
 /** defIds of the non-deckable rows that share a display name with a released card. */
 export const fixtureColliders = (): readonly string[] => cards().colliders;
 
+/** Reviewed clauses of sync-data/card-overrides.json, read once. */
+let overridesCache: Overrides | null = null;
+export const fixtureOverrides = (): Overrides =>
+  (overridesCache ??= existsSync(SYNC_DATA + 'card-overrides.json') ? loadOverrides(readJson<unknown>(SYNC_DATA + 'card-overrides.json')) : {});
+
 /**
- * Features and edges are not in the fixture: they are computed from it. Until the features engine
- * exists (plan Task 5) this hook is null, so `features()` is undefined and `edges()` is empty.
- * Task 5 sets it here to the engine's compute function.
+ * Features and edges are not in the fixture: they are computed from it at test time by the features
+ * engine (plan Task 5), with the committed overrides. Set `compute` to null for a database without them.
  */
 export const fixtureHooks: {
   compute: ((input: { cards: Card[]; formats: FormatDef[]; plans: PlanDef[]; meta: MetaIndex; now: number }) => { features: CardFeatures[]; edges: CardEdge[] }) | null;
-} = { compute: null };
+} = { compute: (input) => computeNetwork({ cards: input.cards, meta: input.meta, overrides: fixtureOverrides() }) };
 
 const cache = new Map<number, CardDb>();
 

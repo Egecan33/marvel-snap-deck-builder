@@ -1,0 +1,740 @@
+{
+ "about": "Edge audit (plan Task 5, spec §8.3). `sample`: 60 edges drawn without replacement from the strong edges of the fixture pool, sorted by 'a|b', with mulberry32(seed) indexes; each judged by reading both cards' synced texts: true = a real interaction a player can use, lenient = true but conditional or weak, false = wrong. Precision is over the 60. Rounds before this one (seeds 20261113-20261117) were used to find and fix rules and are not counted. After this sample, the three `false` patterns were fixed (they are no longer strong); that fix changed the strong set by -18 edges and added 4 (Silver Surfer with Jack Flag, Sebastian Shaw, Superior Spider-Man, Venus), which were read and judged true. `knownTrue` must be strong, `knownUnrelated` must not, `anti` must come out as anti-synergy.",
+ "seed": 20261118,
+ "strongEdgesAtSampling": 1062,
+ "precision": {
+  "strict": 0.883,
+  "lenient": 0.95,
+  "true": 53,
+  "lenient_count": 4,
+  "false": 3
+ },
+ "sample": [
+  {
+   "a": "AirWalker",
+   "b": "Destroyer",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Destroyer destroys your cards at other locations; Air-Walker's When Destroyed pulls a 4-Cost card."
+  },
+  {
+   "a": "Carnage",
+   "b": "ThePhoenixForce",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Carnage destroys your other cards here; Phoenix Force revives one of them."
+  },
+  {
+   "a": "BuckyBarnes",
+   "b": "Deathlok",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Deathlok destroys Bucky Barnes, which becomes the Winter Soldier."
+  },
+  {
+   "a": "BlackWidow",
+   "b": "Ronan",
+   "rules": [
+    "axis:junk_clog"
+   ],
+   "judgement": "true",
+   "note": "Widow's Bite goes to the opponent's hand; Ronan gains +2 per card there."
+  },
+  {
+   "a": "Elixir",
+   "b": "ZombieCaptainMarvel",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Zombie Captain Marvel destroys your other cards here; Elixir revives one destroyed last turn."
+  },
+  {
+   "a": "Nocturne",
+   "b": "SpiderSense",
+   "rules": [
+    "axis:move"
+   ],
+   "judgement": "true",
+   "note": "Nocturne is Moveable; Spider Sense costs 1 less per Moveable card played."
+  },
+  {
+   "a": "LukeCage",
+   "b": "MrNegative",
+   "rules": [
+    "axis:self_affliction"
+   ],
+   "judgement": "false",
+   "note": "Luke Cage stops Power reduction; Mister Negative's -1 is printed Power, not a reduction. Fixed after sampling: Luke Cage is no longer a self_affliction payoff."
+  },
+  {
+   "a": "Deathlok",
+   "b": "Sabretooth",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Deathlok destroys Sabretooth, which returns to hand at 0 Cost."
+  },
+  {
+   "a": "Diamondback",
+   "b": "Fantomex",
+   "rules": [
+    "axis:affliction"
+   ],
+   "judgement": "true",
+   "note": "Fantomex afflicts front-row enemies at each location; Diamondback adds -2 to afflicted enemies there."
+  },
+  {
+   "a": "HumanTorch",
+   "b": "IronFist",
+   "rules": [
+    "axis:move"
+   ],
+   "judgement": "true",
+   "note": "Iron Fist moves the next card; Human Torch doubles when it moves."
+  },
+  {
+   "a": "Angel",
+   "b": "Attuma",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Attuma destroys a smaller card of yours here; Angel replaces it."
+  },
+  {
+   "a": "Destroyer",
+   "b": "Headpool",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Destroyer destroys Headpool, which returns and buffs your hand."
+  },
+  {
+   "a": "Eson",
+   "b": "Sandstorm",
+   "rules": [
+    "axis:created_cards",
+    "axis:go_wide"
+   ],
+   "judgement": "true",
+   "note": "Sandstorm adds Rocks to your hand; Eson puts a created card from hand into play."
+  },
+  {
+   "a": "Destroyer",
+   "b": "Wolverine",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Destroyer destroys Wolverine, which regenerates with +2 Power."
+  },
+  {
+   "a": "FastballSpecial",
+   "b": "Sabretooth",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Fastball Special destroys your highest-Power card here; Sabretooth (5 Power) can be it and returns to hand at 0 Cost."
+  },
+  {
+   "a": "Destroyer",
+   "b": "MorganLeFay",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Destroyer destroys your cards; Morgan le Fay returns destroyed cards to hand with +3 Power."
+  },
+  {
+   "a": "Carnage",
+   "b": "X23",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Carnage destroys X-23, which regenerates and gives Energy."
+  },
+  {
+   "a": "Misery",
+   "b": "UncleBen",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Misery destroys Uncle Ben after repeating On Reveals; Uncle Ben becomes Spider-Man."
+  },
+  {
+   "a": "Destroyer",
+   "b": "ZombieVenom",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Destroyer destroys your cards; Zombie Venom gets Horde +3 per other card destroyed."
+  },
+  {
+   "a": "Clea",
+   "b": "ZombieMisterFantastic",
+   "rules": [
+    "axis:created_cards",
+    "axis:empower"
+   ],
+   "judgement": "lenient",
+   "note": "Clea only creates Flames of the Faltine after it is Empowered; Zombie Mister Fantastic then buffs that created card. Real but conditional."
+  },
+  {
+   "a": "AgentVenom",
+   "b": "Malekith",
+   "rules": [
+    "axis:deck_top",
+    "filter:cost"
+   ],
+   "judgement": "lenient",
+   "note": "Malekith pulls a 3-Cost or less card from the deck Agent Venom set to 3 Power; true but weak (Power 3 may be lower than printed)."
+  },
+  {
+   "a": "Khonshu",
+   "b": "Modok",
+   "rules": [
+    "axis:discard",
+    "discard:selector_hit"
+   ],
+   "judgement": "true",
+   "note": "M.O.D.O.K. discards your hand; Khonshu returns when discarded."
+  },
+  {
+   "a": "FastballSpecial",
+   "b": "PolarisHorseman",
+   "rules": [
+    "axis:affliction"
+   ],
+   "judgement": "true",
+   "note": "Fastball Special afflicts an enemy card; Polaris Horseman counts afflicted Power in play."
+  },
+  {
+   "a": "Marrow",
+   "b": "Misery",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Misery destroys Marrow, whose When Destroyed afflicts enemies."
+  },
+  {
+   "a": "Deathlok",
+   "b": "Knull",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Deathlok destroys cards; Knull has the Power of all destroyed cards."
+  },
+  {
+   "a": "Destroyer",
+   "b": "ThePhoenixForce",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Destroyer destroys your cards; Phoenix Force revives one."
+  },
+  {
+   "a": "Ikari",
+   "b": "SpiderWoman",
+   "rules": [
+    "axis:affliction"
+   ],
+   "judgement": "true",
+   "note": "Spider-Woman afflicts all enemy cards here; Ikari can then be played there."
+  },
+  {
+   "a": "Falcon",
+   "b": "Mantis",
+   "rules": [
+    "filter:cost",
+    "axis:bounce",
+    "axis:one_cost"
+   ],
+   "judgement": "true",
+   "note": "Falcon returns Mantis (1-Cost On Reveal) to replay it."
+  },
+  {
+   "a": "Modok",
+   "b": "Scorn",
+   "rules": [
+    "axis:discard",
+    "discard:selector_hit"
+   ],
+   "judgement": "true",
+   "note": "M.O.D.O.K. discards Scorn, which comes back with +2 Power."
+  },
+  {
+   "a": "LadyDeathstrike",
+   "b": "UncleBen",
+   "rules": [
+    "axis:destroy",
+    "mass:destroy_feeds"
+   ],
+   "judgement": "true",
+   "note": "Lady Deathstrike destroys Uncle Ben (2 Power), which becomes Spider-Man."
+  },
+  {
+   "a": "Mercury",
+   "b": "SpiderSense",
+   "rules": [
+    "axis:move"
+   ],
+   "judgement": "true",
+   "note": "Mercury is Moveable; Spider Sense counts Moveable cards played."
+  },
+  {
+   "a": "Nova",
+   "b": "Tombstone",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Tombstone destroys your lowest-Power card at other locations; Nova (1 Power) gives your cards +1."
+  },
+  {
+   "a": "Cable",
+   "b": "Namorita",
+   "rules": [
+    "axis:draw"
+   ],
+   "judgement": "lenient",
+   "note": "Cable's extra draw triggers Namorita only while Namorita is alone at her location."
+  },
+  {
+   "a": "Enchantress",
+   "b": "Starbrand",
+   "rules": [
+    "syn:remove_own_drawback"
+   ],
+   "judgement": "true",
+   "note": "Enchantress removes Starbrand's Ongoing, which only helps the opponent."
+  },
+  {
+   "a": "Tombstone",
+   "b": "WadeWilson",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Tombstone destroys Wade Wilson (2 Power), which pulls a 1-Cost card with +2 Power."
+  },
+  {
+   "a": "Headpool",
+   "b": "Venom",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Venom destroys Headpool, which returns to hand and buffs your hand."
+  },
+  {
+   "a": "Scorn",
+   "b": "SwordMaster",
+   "rules": [
+    "axis:discard",
+    "discard:selector_hit"
+   ],
+   "judgement": "true",
+   "note": "Sword Master discards an odd-Cost card; Scorn (1-Cost) returns."
+  },
+  {
+   "a": "Hellcow",
+   "b": "WildChild",
+   "rules": [
+    "axis:discard"
+   ],
+   "judgement": "true",
+   "note": "Hellcow discards a card; Wild Child gets +4 once you have discarded."
+  },
+  {
+   "a": "Khonshu",
+   "b": "LadySif",
+   "rules": [
+    "discard:selector_hit",
+    "axis:discard"
+   ],
+   "judgement": "true",
+   "note": "Lady Sif discards your most expensive card; Khonshu (6-Cost) returns."
+  },
+  {
+   "a": "Diamondback",
+   "b": "Lasher",
+   "rules": [
+    "axis:affliction"
+   ],
+   "judgement": "true",
+   "note": "Lasher afflicts an enemy here; Diamondback adds -2 to afflicted enemies here."
+  },
+  {
+   "a": "DeafeningChord",
+   "b": "Falcon",
+   "rules": [
+    "filter:cost"
+   ],
+   "judgement": "false",
+   "note": "Deafening Chord is a skill: it is banished after it resolves, so Falcon cannot return it. Fixed after sampling: board effects never pick skills."
+  },
+  {
+   "a": "Miek",
+   "b": "RedShift",
+   "rules": [
+    "axis:discard"
+   ],
+   "judgement": "true",
+   "note": "Red Shift discards; Miek gains Power and Moveable on each discard."
+  },
+  {
+   "a": "MistyKnight",
+   "b": "SeleneHorseman",
+   "rules": [
+    "axis:no_ability"
+   ],
+   "judgement": "true",
+   "note": "Misty Knight has no abilities; Selene Horseman counts cards with no abilities."
+  },
+  {
+   "a": "Destroyer",
+   "b": "Muse",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Destroyer destroys your cards at other locations; Muse gains +3 per such location."
+  },
+  {
+   "a": "MrNegative",
+   "b": "PolarisHorseman",
+   "rules": [
+    "axis:self_affliction"
+   ],
+   "judgement": "false",
+   "note": "Mister Negative's printed -1 Power is not an affliction, so it does not count toward Polaris Horseman's objective. Fixed after sampling."
+  },
+  {
+   "a": "Sabretooth",
+   "b": "ZombieVenom",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Zombie Venom destroys Sabretooth, which returns at 0 Cost."
+  },
+  {
+   "a": "Scream",
+   "b": "VampireDeaconFrost",
+   "rules": [
+    "axis:power_steal"
+   ],
+   "judgement": "true",
+   "note": "Scream steals Power; Vampire Deacon Frost counts cards that have stolen Power."
+  },
+  {
+   "a": "GhostTheFirstRider",
+   "b": "Hela",
+   "rules": [
+    "axis:discard"
+   ],
+   "judgement": "true",
+   "note": "The First Ghost Rider discards; Hela resurrects discarded cards."
+  },
+  {
+   "a": "BlackKnight",
+   "b": "GhostTheFirstRider",
+   "rules": [
+    "axis:discard"
+   ],
+   "judgement": "true",
+   "note": "The First Ghost Rider discards; Black Knight adds the Ebony Blade."
+  },
+  {
+   "a": "Angel",
+   "b": "Carnage",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Carnage destroys your cards; Angel replaces one."
+  },
+  {
+   "a": "Cloak",
+   "b": "SpiderManBrandNewDay",
+   "rules": [
+    "axis:move"
+   ],
+   "judgement": "true",
+   "note": "Cloak makes all cards Moveable to its location; Spider-Man Brand New Day buffs when it moves."
+  },
+  {
+   "a": "DeathFracturedFrontier",
+   "b": "KidOmega",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Kid Omega destroys the next card you play; Death Fractured Frontier resurrects destroyed cards."
+  },
+  {
+   "a": "AdamantiumInfusion",
+   "b": "HellcowFracturedFrontier",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Hellcow Fractured Frontier destroys your cards at 0 Power or less; Adamantium Infusion revives the strongest doubled."
+  },
+  {
+   "a": "Bast",
+   "b": "Falcon",
+   "rules": [
+    "filter:cost",
+    "axis:bounce",
+    "axis:one_cost",
+    "axis:hand_size"
+   ],
+   "judgement": "true",
+   "note": "Falcon returns Bast (1-Cost On Reveal) to replay it, and Bast sets the hand's Power to 3."
+  },
+  {
+   "a": "Blade",
+   "b": "Hela",
+   "rules": [
+    "axis:discard"
+   ],
+   "judgement": "true",
+   "note": "Blade discards; Hela resurrects discarded cards."
+  },
+  {
+   "a": "Ikari",
+   "b": "Kingpin",
+   "rules": [
+    "axis:affliction"
+   ],
+   "judgement": "true",
+   "note": "Kingpin afflicts enemy cards that move to its location; Ikari can then be played there."
+  },
+  {
+   "a": "GhostSpider",
+   "b": "Redwing",
+   "rules": [
+    "axis:move"
+   ],
+   "judgement": "true",
+   "note": "Ghost-Spider moves the last card played; Redwing adds a card when it first moves."
+  },
+  {
+   "a": "Nimrod",
+   "b": "Tombstone",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "lenient",
+   "note": "Tombstone destroys your lowest-Power card at each other location; Nimrod (6 Power) is rarely the lowest."
+  },
+  {
+   "a": "AirWalker",
+   "b": "ZombieVenom",
+   "rules": [
+    "axis:destroy"
+   ],
+   "judgement": "true",
+   "note": "Zombie Venom destroys Air-Walker, which pulls a 4-Cost card."
+  },
+  {
+   "a": "JoaquinTorres",
+   "b": "Korg",
+   "rules": [
+    "filter:cost",
+    "axis:one_cost",
+    "axis:on_reveal_amp"
+   ],
+   "judgement": "true",
+   "note": "Joaquin Torres repeats Korg's On Reveal (1-Cost): two Rocks."
+  }
+ ],
+ "knownTrue": [
+  {
+   "a": "Patriot",
+   "b": "Hulk",
+   "why": "Patriot: your cards with no abilities have +2 Power; Hulk has no abilities."
+  },
+  {
+   "a": "Agony",
+   "b": "ManSpider",
+   "why": "Agony merges into the card played after it; Man-Spider doubles its Power when it merges."
+  },
+  {
+   "a": "ZombieGiantMan",
+   "b": "ZombieNova",
+   "why": "Zombie Nova gives Horde +3; Zombie Giant-Man gains Power equal to the Horde."
+  },
+  {
+   "a": "Blade",
+   "b": "Apocalypse",
+   "why": "Blade discards the rightmost card; Apocalypse comes back with +4 Power when discarded."
+  },
+  {
+   "a": "Modok",
+   "b": "Swarm",
+   "why": "M.O.D.O.K. discards your hand; Swarm adds two 0-Cost copies when discarded."
+  },
+  {
+   "a": "Carnage",
+   "b": "Deadpool",
+   "why": "Carnage destroys your other cards here; Deadpool returns with double Power."
+  },
+  {
+   "a": "Zero",
+   "b": "RedSkull",
+   "why": "Zero removes the abilities of the next card; Red Skull's Ongoing only helps the enemy."
+  },
+  {
+   "a": "JaneFoster",
+   "b": "Wasp",
+   "why": "Jane Foster Mighty Thor draws all cards that cost 0; Wasp costs 0."
+  },
+  {
+   "a": "Annihilus",
+   "b": "Hood",
+   "why": "Annihilus switches your cards below 0 Power to the enemy side; The Hood has -3 Power."
+  },
+  {
+   "a": "BlackWidow",
+   "b": "Ronan",
+   "why": "Black Widow adds a card to the opponent's hand; Ronan gains +2 per card there."
+  },
+  {
+   "a": "Bullseye",
+   "b": "Swarm",
+   "why": "Bullseye discards cards that cost 1 or less; Swarm costs 1 and has a When Discarded."
+  },
+  {
+   "a": "Korg",
+   "b": "Darkhawk",
+   "why": "Korg shuffles a Rock into the opponent's deck; Darkhawk gains +2 per card there."
+  },
+  {
+   "a": "SpiderWoman",
+   "b": "Ajax",
+   "why": "Spider-Woman afflicts enemy cards; Ajax gains +1 per afflicted card in play."
+  },
+  {
+   "a": "LadySif",
+   "b": "Helicarrier",
+   "why": "Lady Sif discards your most expensive card; Helicarrier (6-Cost) fills your hand when discarded."
+  },
+  {
+   "a": "IronFist",
+   "b": "HumanTorch",
+   "why": "Iron Fist moves your next card; Human Torch doubles its Power when it moves."
+  }
+ ],
+ "knownUnrelated": [
+  {
+   "a": "Abomination",
+   "b": "Wong"
+  },
+  {
+   "a": "Cyclops",
+   "b": "Iceman"
+  },
+  {
+   "a": "TheThing",
+   "b": "MobiusMMobius"
+  },
+  {
+   "a": "Shocker",
+   "b": "Goose"
+  },
+  {
+   "a": "Hulk",
+   "b": "Uatu"
+  },
+  {
+   "a": "Daredevil",
+   "b": "Cyclops"
+  },
+  {
+   "a": "JJonahJameson",
+   "b": "Abomination"
+  },
+  {
+   "a": "HowardTheDuck",
+   "b": "TheThing"
+  },
+  {
+   "a": "Medusa",
+   "b": "Shocker"
+  },
+  {
+   "a": "Quake",
+   "b": "MistyKnight"
+  },
+  {
+   "a": "BlackPanther",
+   "b": "Uatu"
+  },
+  {
+   "a": "RocketRaccoon",
+   "b": "Hulk"
+  },
+  {
+   "a": "Sunspot",
+   "b": "Cyclops"
+  },
+  {
+   "a": "Elektra",
+   "b": "Abomination"
+  },
+  {
+   "a": "Groot",
+   "b": "TheThing"
+  }
+ ],
+ "anti": [
+  {
+   "a": "Cosmo",
+   "b": "Agent13",
+   "rule": "anti:cosmo_own_on_reveal",
+   "why": "Cosmo: On Reveal abilities won't happen here, your own included."
+  },
+  {
+   "a": "Armor",
+   "b": "Deathlok",
+   "rule": "anti:protect_blocks_destroyer",
+   "why": "Armor: cards here can't be destroyed; Deathlok's destroy plan is blocked there."
+  },
+  {
+   "a": "Modok",
+   "b": "DevilDinosaur",
+   "rule": "anti:discard_vs_hand_size",
+   "why": "M.O.D.O.K. discards your hand; Devil Dinosaur wants a large hand."
+  },
+  {
+   "a": "Armor",
+   "b": "Deadpool",
+   "rule": "anti:protect_blocks_when_destroyed",
+   "why": "Armor stops Deadpool from being destroyed, so its When Destroyed never fires."
+  },
+  {
+   "a": "Electro",
+   "b": "Bishop",
+   "rule": "anti:one_card_a_turn",
+   "why": "Electro limits you to 1 card a turn; Bishop pays off for each card played."
+  }
+ ]
+}
