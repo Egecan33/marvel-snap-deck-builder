@@ -14,7 +14,7 @@ Last updated: 2026-11-12. Research written, design and plan committed. Research 
 - Scraping community sites is acceptable for a local personal tool.
 - Skip brainstorming questions; decide sensibly and list the choices at the end.
 - Cost discipline: about five research topics with one fact-check pass, no extra research rounds, each workflow under about 8 agents, stages as separate workflows, commit before every stage boundary.
-- Local repo with git commits per task. Publish to GitHub only if the owner asks.
+- Owner, 2026-11-12 (relayed by the parent session): "package both like the Magic one and put them on GitHub, with everything". Final stage, plan Task 13. Until then: local repo, commits per task, no push.
 - Do not touch `~/github_repositories/riftbound-forge` or any other repository.
 
 ## Stages
@@ -28,6 +28,7 @@ Last updated: 2026-11-12. Research written, design and plan committed. Research 
 | 4 | API and UI: plan Tasks 10-11 | not started |
 | 5 | End-to-end tests and calibration: plan Task 12 | not started |
 | 6 | Final review by driving the real UI and looking at screenshots | not started |
+| 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | not started; only after stages 2-6 are done |
 
 ## Stage 0 detail
 

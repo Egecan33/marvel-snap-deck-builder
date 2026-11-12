@@ -445,3 +445,20 @@ Routes (JSON): `GET /api/status` (counts, sync state, meta info, coverage report
 - [ ] `pnpm tsx src/ingest/calibrate.ts`: for 10 off-meta build-around cards print the brews (cards, rating, novelty, plan, floor, pick reasons) and for 5 top archetypes the tuned build; read them and fix what is plainly wrong (a brew whose "interaction" is not real is a parser or network bug: fix it there and add the pair to the audit fixture).
 - [ ] Whole-branch review against the spec's goals and anti-goals by driving the real UI and reading screenshots; fix findings; `pnpm typecheck && pnpm test && pnpm e2e`.
 - [ ] `README.md`: real getting-started, screenshots, what is measured and what is heuristic. `docs/STATUS.md` final.
+
+---
+
+## Stage 7 — package and publish
+
+### Task 13: Portable downloads and GitHub release
+
+Owner, 2026-11-12 (relayed by the parent session): "package both like the Magic one and put them on GitHub, with everything." Do this only after Task 12 is finished and reviewed.
+
+**Reference:** `~/github_repositories/commander-forge` `packaging/` (`assemble.mjs`, `build-sync.mjs`, `launcher.mjs`, the `.command` and `.bat` starters, `READ ME FIRST.txt`, `RELEASE_NOTES.md`), `.github/workflows/release.yml`, the `build:sync` and `package` scripts, standalone Next output (its commits 275a85b and e35f899).
+
+- [ ] Port the packaging: portable zips for macOS arm64, macOS x64 and Windows x64 with the bundled Node binary and a double-click starter. The bundle ships code and `sync-data/` only: no card data, no images. First start opens the Data page and syncs. The data directory is decided by one function (next to the app when packaged, `./data` from source).
+- [ ] Build the macOS bundle locally, unzip into a fresh folder, start it, sync, brew a deck; fix what breaks. The Windows bundle is verified by CI only; say so in the README and the release notes.
+- [ ] Repository contents: `LICENSE` (MIT, copyright "Egecan33"); `AGENTS.md`; README in the style of Commander Forge's (download and downloads badges, test badge, hero screenshot, feature list, screenshot table, download and first-run steps per system including opening an unsigned app, run from source, what is heuristic, data sources); fan-project disclaimer naming Marvel and Second Dinner; card data and images stay out of git; research pushed as written, raw downloads gitignored.
+- [ ] **Before the first push, confirm with the owner in this session.** Two reasons: creating a public repository is outward-facing, and the data source's terms forbid scraping without written permission and allow personal, non-commercial use only (`data-sources.md`, `meta-sources.md`), which matters more for a published tool than for a local one. State both and proceed on their yes. Also check that the commit author email is a GitHub noreply address; rewrite authorship before pushing if it is not.
+- [ ] Public repository on the owner's GitHub account (Egecan33) under a searchable name such as `marvel-snap-deck-builder`, with a description and topics.
+- [ ] Tag `v0.1.0`, wait for the release workflow, confirm the GitHub Release holds all three zips, download the macOS one and start it once. Update README download links.
