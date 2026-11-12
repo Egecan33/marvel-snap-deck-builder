@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createMetaIndex } from '@/engine/carddb';
 import { build, explainPicks, fillRest } from '@/engine/builder/build';
-import { checkFloor, FLOOR, linkedStats, strongPartners } from '@/engine/builder/floor';
+import { checkFloor, FLOOR, linkedStats, strongPartners, unmetConditions } from '@/engine/builder/floor';
 import { applySwaps, improveDeck, suggestSwaps } from '@/engine/builder/improve';
 import { DEFAULT_PROMPTS } from '@/engine/builder/pool';
 import { createSpace } from '@/engine/builder/search';
@@ -178,14 +178,55 @@ describe('brew property test (spec §17)', () => {
     }
   });
 
+  it('engine review: the build-around card is a plan piece or tied to the primary plan pieces, and no pick has an unmet stated condition', () => {
+    for (const { id, out } of BREWS) {
+      for (const r of out.results) {
+        expect(r.plan, name(id)).not.toBeNull();
+        const ids = r.deck.cards.map((c) => c.defId);
+        const sec = detectPlans(r.deck, ctx).secondary;
+        const pieces = [r.plan!, sec].flatMap((p) => (p ? [...p.enablers, ...p.payoffs] : []));
+        // A lock outside the plans must have strong partners among the primary plan's own pieces (Punisher with
+        // Doctor Octopus and Gladiator in a Put-into-play deck); Sunspot's energy partners beside a Move plan do not count.
+        const primaryPieces = [...r.plan!.enablers, ...r.plan!.payoffs];
+        const piecePartners = strongPartners(db, id, ids).filter((x) => primaryPieces.includes(x));
+        expect(pieces.includes(id) || piecePartners.length >= FLOOR.ablationPiecePartners!, `${name(id)} is in its plan or tied to its pieces`).toBe(true);
+        for (const p of r.picks) expect(unmetConditions(db, p.defId, ids), `${name(id)}: ${name(p.defId)}`).toEqual([]);
+        expect(r.why).toMatch(/not calibrated/);
+        expect(r.why).toContain(r.novelty.claimsWithheld ?? r.why);
+      }
+    }
+  });
+
+  it('engine review: ablation fails a lock that is decoration in its deck (Sunspot in a Move deck)', () => {
+    const ids = ['Batroc', 'Sunspot', 'JenniferKale', 'Topaz', 'Xorn', 'Hercules', 'HopeSummers', 'Nocturne', 'SpiderPunk', 'SpiderMan2099', 'Heimdall', 'Infinaut'];
+    const f = checkFloor(deckOf(ids), ctx, ['Sunspot']);
+    const abl = f.checks.find((c) => c.key === 'ablation:Sunspot')!;
+    expect(f.checks.find((c) => c.key === 'partners:Sunspot')!.passed).toBe(true);
+    expect(abl.passed).toBe(false);
+    expect(abl.detail).toMatch(/decoration/);
+    expect(f.passed).toBe(false);
+  });
+
+  it('engine review: a pick whose stated condition the deck cannot meet is flagged (Fantomex without discard)', () => {
+    const ids = ['Fantomex', 'Deathlok', 'Carnage', 'Knull', 'Nova', 'BuckyBarnes', 'Venom', 'Deadpool', 'Sabretooth', 'Death', 'Zero', 'Destroyer'];
+    expect(ids.every((x) => db.get(x))).toBe(true);
+    const u = unmetConditions(db, 'Fantomex', ids);
+    expect(u).toHaveLength(1);
+    expect(u[0]).toMatch(/Fantomex.*discard/);
+    const pick = explainPicks(deckOf(ids), ctx).find((p) => p.defId === 'Fantomex')!;
+    expect(pick.risk).toMatch(/Unmet condition/);
+    expect(unmetConditions(db, 'Fantomex', [...ids.slice(0, 11), 'Hellcow'])).toEqual([]);
+  });
+
   it('is deterministic for a seed and varies with the seed', () => {
     const produced = BREWS.filter((b) => b.out.results.length).slice(0, 3);
     let differs = 0;
     for (const { id, out } of produced) {
       const again = build(lockDeck([id]), ctx, opts());
       expect(again.results.map((r) => r.deck.cards.map((c) => c.defId))).toEqual(out.results.map((r) => r.deck.cards.map((c) => c.defId)));
-      const other = build(lockDeck([id]), ctx, opts({ seed: 99 }));
-      if (JSON.stringify(other.results.map((r) => r.deck.cards)) !== JSON.stringify(out.results.map((r) => r.deck.cards))) differs++;
+      // Two other seeds (99 was the only one before the engine review; after it the first three brews give the same deck at 99).
+      const others = [99, 7].map((seed) => build(lockDeck([id]), ctx, opts({ seed })));
+      if (others.some((other) => JSON.stringify(other.results.map((r) => r.deck.cards)) !== JSON.stringify(out.results.map((r) => r.deck.cards)))) differs++;
     }
     expect(differs).toBeGreaterThanOrEqual(1);
   });
@@ -274,11 +315,36 @@ describe('build prompts and modes', () => {
     expect(build(lockDeck([lonely]), ctx, opts()).refused).toMatch(/strong partner/);
   });
 
+  it('engine review: a refusal names the failing checks of the closest deck', () => {
+    const out = build(lockDeck(['Darkhawk']), ctx, opts());
+    if (out.results.length === 0) {
+      expect(out.refused).toMatch(/Closest deck \(/);
+      expect(out.refused).toMatch(/ against /);
+      expect(out.refused).toContain('Darkhawk');
+    }
+  });
+
+  it('engine review: the floor says legal under Ranked rules only for an unverified mode', () => {
+    const ids = top200[0]!;
+    const hv = checkFloor(deckOf(ids, { format: 'high-voltage' }), ctx).checks.find((c) => c.key === 'legal')!;
+    expect(validateDeck(deckOf(ids, { format: 'high-voltage' }), db, null).some((v) => v.code === 'MODE_UNVERIFIED')).toBe(true);
+    expect(hv.detail).toMatch(/Ranked rules/);
+    expect(hv.detail).toMatch(/not verified/);
+    expect(checkFloor(deckOf(ids), ctx).checks.find((c) => c.key === 'legal')!.detail).toMatch(/legal in Ranked/);
+  });
+
   it('works without a meta snapshot', () => {
     const bare: CardDb = { ...db, meta: () => createMetaIndex(null, [], []) };
     const out = build(lockDeck([lock]), { db: bare, owned: null }, opts());
     expect(out.results.length, out.refused ?? '').toBeGreaterThan(0);
-    for (const r of out.results) expect(r.novelty.claimsWithheld).toBeTruthy();
+    for (const r of out.results) {
+      expect(r.novelty.claimsWithheld).toBeTruthy();
+      // Engine review: no novelty is claimed without known lists.
+      expect(r.novelty.band).toBe('unknown');
+      expect(r.novelty.novelty).toBe(0);
+      expect(r.why).toMatch(/Novelty not claimed/);
+      expect(r.why).not.toMatch(/off-meta/);
+    }
   });
 
   it('fills the rest of a partial deck keeping its cards', () => {

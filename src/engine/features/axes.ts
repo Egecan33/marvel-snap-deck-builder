@@ -16,7 +16,7 @@
  *  - end-of-game discards (Dracula) are not discard enablers: nothing triggers after the game.
  */
 import type { AxisId, Card, CardFeatures, Clause } from '../types';
-import { clauseText, effs, hasTag, hasTrigger, selfMover, tagsOf, isDrawback, movesOthers } from './traits';
+import { clauseText, effs, hasTag, hasTrigger, selfMover, tagsOf, isDrawback, movesOthers, tokenMover } from './traits';
 
 export type Role = 'text' | 'heuristic' | null;
 export interface CardView { card: Card; clauses: readonly Clause[]; tags: ReadonlySet<string> }
@@ -78,7 +78,7 @@ const AXIS_LIST: AxisDef[] = [
     id: 'move', label: 'Move your cards', heuristic: false, weight: 3,
     enablerRule: 'moves own cards, grants Moveable, or moves itself',
     payoffRule: '"When this moves", move counts, "a card moved last turn", reads cards that moved',
-    enabler: (v) => T(movesOthers(v.clauses) || selfMover(v.clauses)),
+    enabler: (v) => T(movesOthers(v.clauses, v.card) || selfMover(v.clauses) || tokenMover(v.clauses, v.card)),
     payoff: (v) => T(hasTrigger(v.clauses, /^on_self_move$/)
       || (hasTrigger(v.clauses, /^on_other_move$/) && !/When an enemy card moves/.test(v.card.text))
       || hasTag(v.tags, /^(scale:moveable_played|cond:moved_recently|sel:moveable_card)$/)
@@ -235,7 +235,7 @@ const AXIS_LIST: AxisDef[] = [
     enablerRule: 'locks a location or changes locations',
     payoffRule: 'HEURISTIC bypass: moves, adds cards to other locations, "Nothing can stop you"',
     enabler: (v) => T(effs(v.clauses, /^lockdown$/, /^(both|all_here)$/).length > 0 || effs(v.clauses, /^loc_change$/).length > 0),
-    payoff: (v) => (/Nothing can stop you/.test(v.card.text) || movesOthers(v.clauses) || selfMover(v.clauses) ? 'heuristic' : null),
+    payoff: (v) => (/Nothing can stop you/.test(v.card.text) || movesOthers(v.clauses, v.card) || selfMover(v.clauses) ? 'heuristic' : null),
   },
   {
     id: 'merge', label: 'Merge', heuristic: false, weight: 3,

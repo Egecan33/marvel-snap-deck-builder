@@ -149,7 +149,7 @@ export interface NearList { key: string; shared: number; archetype: string | nul
 export interface PairEvidence { a: string; b: string; strength: number; observed: number; expected: number; unexplored: number; liftSmoothed: number; warning: string | null }
 export interface NoveltyReport {
   novelty: number;                // 0..100
-  band: 'meta' | 'variant' | 'off-meta' | 'brew';
+  band: 'meta' | 'variant' | 'off-meta' | 'brew' | 'unknown';   // 'unknown' (engine review): no meta lists or fewer than 12 known cards; novelty is then 0
   parts: { listDistance: number; connectedRarity: number; packageNovelty: number };
   nearest: NearList[];            // up to 3
   rareCards: { defId: string; listShare: number; connected: boolean; isNew: boolean }[];

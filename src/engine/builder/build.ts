@@ -18,7 +18,7 @@ import { detectPlans } from '../plans/detect';
 import { edgeLabel, nameOf, names } from '../rating/deck';
 import { rateDeck } from '../rating/rate';
 import type { BrewResult, BuildOptions, BuildOutcome, CardDb, Deck, EngineContext, FloorReport, PickReason } from '../types';
-import { checkFloor, FLOOR, strongPartners } from './floor';
+import { checkFloor, FLOOR, strongPartners, unmetConditions } from './floor';
 import { allowed, candidatePool, DEFAULT_PROMPTS } from './pool';
 import { anneal, createSpace, greedy, offer, SEARCH, type Archive, type Candidate } from './search';
 
@@ -53,7 +53,9 @@ const deckFrom = (base: Deck, ids: readonly string[], locks: ReadonlySet<string>
 interface Verified { ids: string[]; cand: Candidate; floor: FloorReport; noveltyOk: boolean; rating: number | null; failed: string[] }
 
 /** Runs the search for one set of fixed cards. */
-function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: string[], c5: string[], poolIds: string[]): { verified: Verified[]; failures: Map<string, number>; seenFeasible: number } {
+interface Searched { verified: Verified[]; failures: Map<string, number>; seenFeasible: number; closest: { ids: string[]; floor: FloorReport; novelty: number | null } | null }
+
+function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: string[], c5: string[], poolIds: string[]): Searched {
   const db = ctx.db;
   const prompts = { ...DEFAULT_PROMPTS, ...(opts.prompts ?? {}) };
   const brew = opts.mode === 'brew';
@@ -82,11 +84,14 @@ function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: strin
 
   const chains = Math.max(2, Math.min(MAX_RESULTS, Math.max(1, Math.floor(opts.count || 1))) + 1);
   const occupied = new Set<string>();
+  let bestRun: { deck: number[]; violations: number; F: number } | null = null;
   const rootSeed = Number.isFinite(opts.seed) ? Math.floor(opts.seed) : 0;
   for (let c = 0; c < chains; c++) {
     const startDeck = !brew && c > 0 && starts.length > 1 ? starts[1 + ((c - 1) % (starts.length - 1))]! : starts[0]!;
     const best = anneal(space, startDeck, (rootSeed ^ (c * 0x9e3779b1)) >>> 0, Math.round(SEARCH.proposals * (c === 0 ? 1.4 : 1)), archive, occupied);
     if (best.ev.violations <= 1e-9) occupied.add(best.ev.cell);
+    const F = space.objective(best.ev);
+    if (!bestRun || best.ev.violations < bestRun.violations - 1e-9 || (Math.abs(best.ev.violations - bestRun.violations) <= 1e-9 && F > bestRun.F)) bestRun = { deck: [...best.deck], violations: best.ev.violations, F };
   }
 
   // Exact check, cells by their best objective, candidates in each cell in objective order.
@@ -94,6 +99,7 @@ function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: strin
   const verified: Verified[] = [];
   const failures = new Map<string, number>();
   let budget = VERIFY_BUDGET;
+  let closest: Searched['closest'] = null;
   const want = Math.max(1, Math.min(MAX_RESULTS, Math.floor(opts.count || 1)));
   for (const [, list] of cells) {
     if (verified.length >= (brew ? want : Math.max(want, 3)) || budget <= 0) break;
@@ -107,10 +113,12 @@ function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: strin
       if (brew) {
         const nov = noveltyOf(d, ctx);
         const shared = nov.nearest[0]?.shared ?? 0;
-        if (nov.novelty < SEARCH.minNovelty) { noveltyOk = false; failed.push('novelty'); }
+        // With no meta lists novelty is unknown (band 'unknown'): the bar cannot be checked and is not claimed in `why`.
+        if (nov.band !== 'unknown' && nov.novelty < SEARCH.minNovelty) { noveltyOk = false; failed.push('novelty'); }
         if (prompts.maxShared !== null && shared > prompts.maxShared) { noveltyOk = false; failed.push('maxShared'); }
       }
       for (const f of failed) failures.set(f, (failures.get(f) ?? 0) + 1);
+      if (!closest) closest = { ids, floor, novelty: brew ? noveltyOf(d, ctx).novelty : null };
       if (floor.passed && noveltyOk) {
         verified.push({ ids, cand, floor, noveltyOk, rating: brew ? null : rateDeck(d, ctx).rating, failed });
         break;
@@ -118,7 +126,13 @@ function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: strin
     }
   }
   const seenFeasible = [...archive.cells.values()].reduce((s, l) => s + l.length, 0);
-  return { verified, failures, seenFeasible };
+  // Nothing reached the exact check: report the floor of the search's best deck instead (engine review: name the failing checks).
+  if (!closest && bestRun) {
+    const ids = bestRun.deck.map((i) => space.ids[i]!);
+    const d = deckFrom(deck, ids, new Set(), opts.mode, '');
+    closest = { ids, floor: checkFloor(d, ctx, c5), novelty: brew ? noveltyOf(d, ctx).novelty : null };
+  }
+  return { verified, failures, seenFeasible, closest };
 }
 
 /** Refusal text for a build-around card the prompts leave fewer than three strong partners. */
@@ -179,12 +193,10 @@ export function build(deck: Deck, ctx: EngineContext, opts: BuildOptions): Build
   if (res.verified.length === 0) {
     const top = [...res.failures].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, n]) => `${k} (${n})`);
     const around = lastFixed.length ? ` around ${names(db, lastFixed)}` : '';
-    return {
-      results: [],
-      refused: res.seenFeasible === 0
-        ? `No deck${around} met the floor constraints inside the search${brew ? ` together with novelty ${SEARCH.minNovelty}+ and at most ${prompts.maxShared ?? 12} cards shared with a known list` : ''}; the prompts may leave too few connected cards.`
-        : `No deck${around} passed the exact floor check${brew ? ' and novelty bar' : ''}; failed most often: ${top.join(', ')}.`,
-    };
+    const head = res.seenFeasible === 0
+      ? `No deck${around} met the floor constraints inside the search${brew ? ` together with novelty ${SEARCH.minNovelty}+ and at most ${prompts.maxShared ?? 12} cards shared with a known list` : ''}.`
+      : `No deck${around} passed the exact floor check${brew ? ' and novelty bar' : ''}; failed most often: ${top.join(', ')}.`;
+    return { results: [], refused: `${head}${closestText(db, res.closest)}` };
   }
 
   const lockSet = new Set(locks);
@@ -197,19 +209,35 @@ export function build(deck: Deck, ctx: EngineContext, opts: BuildOptions): Build
     const d = deckFrom(deck, ids, lockSet, o.mode, `${title}: ${plan ? plan.name : 'network package'}`);
     const rating = rateDeck(d, c).rating;
     const novelty = noveltyOf(d, c);
-    const why = whyText(db, d, plan, v, novelty.novelty, novelty.band, novelty.nearest[0], locks, lastFixed, brew);
+    const why = whyText(db, d, plan, v, rating, novelty, locks, lastFixed, brew);
     return { deck: d, rating, novelty, floor: v.floor, plan, why, picks: explainPicks(d, c) };
   });
   return { results, refused: null };
 }
 
-function whyText(db: CardDb, d: Deck, plan: BrewResult['plan'], v: Verified, novelty: number, band: string, near: { shared: number; archetype: string | null } | undefined, locks: string[], fixed: string[], brew: boolean): string {
+/** The failed checks of the closest deck the search found, with values, thresholds and the cards each names. */
+function closestText(db: CardDb, closest: Searched['closest']): string {
+  if (!closest) return '';
+  const fails = closest.floor.checks.filter((c) => !c.passed);
+  const nov = closest.novelty !== null && closest.novelty < SEARCH.minNovelty ? [`novelty ${closest.novelty} (at least ${SEARCH.minNovelty})`] : [];
+  if (!fails.length && !nov.length) return '';
+  const r = (x: number): string => (Number.isInteger(x) ? String(x) : x.toFixed(2));
+  const parts = fails.map((c) => `${c.key} ${r(c.value)} against ${r(c.threshold)}: ${c.detail}`);
+  return ` Closest deck (${names(db, closest.ids)}) fails ${[...parts, ...nov].join(' | ')}`;
+}
+
+function whyText(db: CardDb, d: Deck, plan: BrewResult['plan'], v: Verified, rating: number, nov: BrewResult['novelty'], locks: string[], fixed: string[], brew: boolean): string {
+  const near = nov.nearest[0];
   const parts: string[] = [];
   if (locks.length) parts.push(`Built around ${names(db, locks)}.`);
   else if (fixed.length) parts.push(`Surprise: started from the pair ${names(db, fixed)}.`);
   if (plan) parts.push(`Plan: ${plan.name}, ${names(db, plan.enablers)} feeding ${names(db, plan.payoffs)}, ${pct(plan.assembly)} assembly by turn ${plan.keyTurn} (exact odds over heuristic families).`);
   parts.push(`${v.cand.ev.strong} strong pairs and ${v.cand.ev.linked} linked pairs of 66 (heuristic network); floor passed (${v.floor.checks.length} checks).`);
-  parts.push(`Novelty ${novelty} (${band})${near ? `: shares at most ${near.shared} of 12 cards with a known list${near.archetype ? ` (${near.archetype})` : ''}` : ''}.`);
+  if (nov.band === 'unknown') parts.push('Novelty not claimed.');
+  else parts.push(`Novelty ${nov.novelty} (${nov.band})${near ? `: shares at most ${near.shared} of 12 cards with a known list${near.archetype ? ` (${near.archetype})` : ''}` : ''}.`);
+  if (nov.claimsWithheld) parts.push(nov.claimsWithheld);
+  // HEURISTIC and uncalibrated (HANDOVER "After Task 7"): the rating does not put meta lists and brews on one scale.
+  parts.push(`Rating ${rating} of 100 is heuristic and not calibrated against win rates; it does not say the deck is as strong as a meta list.`);
   if (!brew) parts.push('Tuned mode: ranked by the deck rating.');
   void d;
   return parts.join(' ');
@@ -320,6 +348,7 @@ export function explainPicks(deck: Deck, ctx: EngineContext): PickReason[] {
     }
     const antiE = db.edges(id).filter((e) => e.anti > 0 && e.a !== e.b && ids.includes(e.a === id ? e.b : e.a)).sort((x, y) => y.anti - x.anti)[0];
     if (antiE) risks.push(`Works against ${nameOf(db, antiE.a === id ? antiE.b : antiE.a)} (${edgeLabel(antiE, 'anti')}, heuristic).`);
+    for (const u of unmetConditions(db, id, ids)) risks.push(`Unmet condition (heuristic): ${u}`);
     if (corpus.withheld) risks.push('Pair statistics rest on a thin corpus: "unexplored" is not claimed.');
     out.push({ defId: id, interaction, unusual, replaces, risk: risks.join(' ') });
   }

@@ -735,6 +735,471 @@
    "b": "Bishop",
    "rule": "anti:one_card_a_turn",
    "why": "Electro limits you to 1 card a turn; Bishop pays off for each card played."
+  },
+  {
+   "a": "Annihilus",
+   "b": "HellcowFracturedFrontier",
+   "rule": "anti:destroys_negative_own",
+   "why": "Hellcow Fractured Frontier destroys your cards at 0 Power or less before Annihilus can switch them."
+  },
+  {
+   "a": "Kraglin",
+   "b": "SpiderManNoir",
+   "rule": "anti:banish_prepared_top",
+   "why": "Kraglin banishes the top card that Spider-Man Noir set to 8 Power."
+  }
+ ],
+ "heldOut": {
+  "about": "Held-out sample after the engine review (2026-11-13): 40 edges drawn with mulberry32(20261121) from the strong edges not in `sample`, after the review fixes (1,034 strong edges, 977 eligible). Judged by reading both synced texts; not used to change any rule.",
+  "seed": 20261121,
+  "strongEdgesAtSampling": 1034,
+  "precision": {
+   "strict": 0.825,
+   "lenient": 1.0,
+   "true": 33,
+   "lenient_count": 7,
+   "false": 0
+  },
+  "sample": [
+   {
+    "a": "Knull",
+    "b": "Misery",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Misery destroys your other cards here after repeating their On Reveals; Knull adds the Power of every destroyed card."
+   },
+   {
+    "a": "Deathlok",
+    "b": "X23",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Deathlok destroys your other cards here; X-23 regenerates and gives +1 Energy when destroyed."
+   },
+   {
+    "a": "Helicarrier",
+    "b": "MoonKnight",
+    "rules": [
+     "axis:discard",
+     "discard:selector_hit"
+    ],
+    "judgement": "lenient",
+    "note": "Moon Knight discards an even-costed card from your hand; Helicarrier (6) qualifies but competes with other even cards."
+   },
+   {
+    "a": "X23",
+    "b": "ZombiePowerMan",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "lenient",
+    "note": "Zombie Power Man discards your leftmost card only while winning there; X-23 must be leftmost."
+   },
+   {
+    "a": "Hulk",
+    "b": "Patriot",
+    "rules": [
+     "axis:no_ability"
+    ],
+    "judgement": "true",
+    "note": "Patriot gives your no-ability cards +2; Hulk has no ability."
+   },
+   {
+    "a": "Carnage",
+    "b": "DeathFracturedFrontier",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Carnage destroys your other cards here; Death Fractured Frontier resurrects your destroyed characters."
+   },
+   {
+    "a": "MoonKnight",
+    "b": "WildChild",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Moon Knight discards from your hand; Wild Child gets +4 if you've discarded a card."
+   },
+   {
+    "a": "Destroyer",
+    "b": "MoiraX",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Destroyer destroys your cards at other locations; Moira X's When Destroyed refills your opening hand."
+   },
+   {
+    "a": "SpiderSense",
+    "b": "Vision",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Vision is Moveable; Spider Sense costs 1 less for each Moveable card you've played."
+   },
+   {
+    "a": "GhostSpider",
+    "b": "SpiderPunk",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Ghost-Spider moves the last card you played; Spider-Punk steals 2 Power when it moves to a location."
+   },
+   {
+    "a": "Deadpool",
+    "b": "Tombstone",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Tombstone destroys your lowest-Power card at each other location; Deadpool (1 Power) returns with double Power."
+   },
+   {
+    "a": "BlackKnight",
+    "b": "LadySif",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Lady Sif discards your most expensive card; Black Knight adds the Ebony Blade after you discard."
+   },
+   {
+    "a": "WeaponXWolverine",
+    "b": "ZombieCaptainMarvel",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Zombie Captain Marvel destroys your other cards here; Weapon X Wolverine gains Power after each."
+   },
+   {
+    "a": "Khonshu",
+    "b": "ZombiePowerMan",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "lenient",
+    "note": "Zombie Power Man discards your leftmost card only while winning; Khonshu returns when discarded."
+   },
+   {
+    "a": "Carnage",
+    "b": "Sabretooth",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Carnage destroys your other cards here; Sabretooth returns to hand at 0 Cost."
+   },
+   {
+    "a": "Nocturne",
+    "b": "WebSling",
+    "rules": [
+     "axis:move",
+     "axis:location_control"
+    ],
+    "judgement": "lenient",
+    "note": "Web Sling grants one more move; Nocturne is already Moveable once, so the extra move is a second trigger."
+   },
+   {
+    "a": "LadyBullseye",
+    "b": "PolarisHorseman",
+    "rules": [
+     "axis:affliction"
+    ],
+    "judgement": "true",
+    "note": "Lady Bullseye afflicts enemy cards; Polaris Horseman's Objective counts -5 afflicted Power in play."
+   },
+   {
+    "a": "Helicarrier",
+    "b": "LadySif",
+    "rules": [
+     "discard:selector_hit",
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Lady Sif discards your highest-Cost card; Helicarrier (6) fills your hand when discarded."
+   },
+   {
+    "a": "ColleenWing",
+    "b": "GhostRider",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Colleen Wing discards your cheapest card; Ghost Rider brings back a discarded card."
+   },
+   {
+    "a": "GhostTheFirstRider",
+    "b": "WildChild",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "The First Ghost Rider discards a character from your hand; Wild Child gets +4 if you've discarded."
+   },
+   {
+    "a": "IronFist",
+    "b": "Vulture",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Iron Fist moves your next played card; Vulture gets +4 when it moves."
+   },
+   {
+    "a": "ThePhoenixForce",
+    "b": "Vulture",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Phoenix Force revives a destroyed card with Moveable; Vulture must be destroyed first."
+   },
+   {
+    "a": "Destroyer",
+    "b": "Nimrod",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Destroyer destroys your cards at other locations; Nimrod copies itself to each other location when destroyed."
+   },
+   {
+    "a": "PolarisHorseman",
+    "b": "USAgent",
+    "rules": [
+     "axis:self_affliction",
+     "axis:affliction"
+    ],
+    "judgement": "true",
+    "note": "U.S. Agent gives 4-Cost or more cards here -3 Power; that afflicted Power counts for Polaris Horseman's Objective."
+   },
+   {
+    "a": "Morbius",
+    "b": "ZombiePowerMan",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Zombie Power Man discards; Morbius gets +2 per discard."
+   },
+   {
+    "a": "DeathFracturedFrontier",
+    "b": "Deathlok",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Deathlok destroys your other cards here; Death Fractured Frontier resurrects them."
+   },
+   {
+    "a": "Annihilus",
+    "b": "Hazmat",
+    "rules": [
+     "axis:self_affliction"
+    ],
+    "judgement": "lenient",
+    "note": "Hazmat gives your other cards -1; only cards at 0 or less Power become negative for Annihilus to switch."
+   },
+   {
+    "a": "Falcon",
+    "b": "MerlinOfAvalon",
+    "rules": [
+     "filter:cost",
+     "axis:bounce",
+     "axis:one_cost"
+    ],
+    "judgement": "true",
+    "note": "Falcon returns your 1-Cost cards; replaying Merlin of Avalon adds another Grand Design."
+   },
+   {
+    "a": "Hela",
+    "b": "Modok",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "M.O.D.O.K. discards your hand; Hela resurrects discarded cards."
+   },
+   {
+    "a": "BlackCat",
+    "b": "Miek",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Black Cat discards itself; Miek gains Power and Moveable when you discard."
+   },
+   {
+    "a": "BlackCat",
+    "b": "ColonelAmerica",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Black Cat discards itself each turn in hand; Colonel America counts turns you discarded."
+   },
+   {
+    "a": "MadameWeb",
+    "b": "SpiderMan2099",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Madame Web makes a card here Moveable each turn; Spider-Man 2099 afflicts each time it moves to a location."
+   },
+   {
+    "a": "ZombieBlade",
+    "b": "ZombieVenom",
+    "rules": [
+     "axis:horde",
+     "axis:on_reveal_count"
+    ],
+    "judgement": "true",
+    "note": "Both feed the Zombie Horde; Zombie Venom is an On Reveal for Zombie Blade's condition."
+   },
+   {
+    "a": "RedShift",
+    "b": "Scorn",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "lenient",
+    "note": "Red Shift discards your leftmost card; Scorn must be leftmost."
+   },
+   {
+    "a": "KidOmega",
+    "b": "Sabretooth",
+    "rules": [
+     "axis:destroy"
+    ],
+    "judgement": "true",
+    "note": "Kid Omega destroys your next played card; Sabretooth returns to hand at 0 Cost."
+   },
+   {
+    "a": "Hela",
+    "b": "MoonKnight",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Moon Knight discards from your hand; Hela resurrects discarded cards."
+   },
+   {
+    "a": "Hood",
+    "b": "Viper",
+    "rules": [
+     "axis:self_affliction"
+    ],
+    "judgement": "true",
+    "note": "The Hood has -3 Power; Viper switches your lowest-Power card here to the enemy side."
+   },
+   {
+    "a": "GhostRider",
+    "b": "SilverSamurai",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Silver Samurai discards your lowest-Power character; Ghost Rider brings it back."
+   },
+   {
+    "a": "Vulture",
+    "b": "WebSling",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Web Sling makes Vulture Moveable; Vulture gets +4 when it moves."
+   },
+   {
+    "a": "Blade",
+    "b": "ColonelAmerica",
+    "rules": [
+     "axis:discard"
+    ],
+    "judgement": "true",
+    "note": "Blade discards from your hand; Colonel America counts turns you discarded."
+   }
+  ]
+ },
+ "reviewFalse": [
+  {
+   "a": "SamWilson",
+   "b": "HumanTorch",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "Vulture",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "SpiderMan2099",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "Redwing",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "Dagger",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "MultipleMan",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "SpiderPunk",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "SpiderManBrandNewDay",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "SamWilson",
+   "b": "Nocturne",
+   "why": "Sam Wilson makes only his own Cap's Shield Moveable; it never moves this card."
+  },
+  {
+   "a": "Swarm",
+   "b": "Yellowjacket",
+   "why": "Swarm's 0-Cost copies are created cards, not a reward for your 0-Cost cards."
+  },
+  {
+   "a": "Swarm",
+   "b": "Wasp",
+   "why": "Swarm's 0-Cost copies are created cards, not a reward for your 0-Cost cards."
+  },
+  {
+   "a": "Annihilus",
+   "b": "HellcowFracturedFrontier",
+   "why": "Hellcow Fractured Frontier destroys your cards at 0 Power or less, the negative cards Annihilus switches."
+  },
+  {
+   "a": "Kraglin",
+   "b": "SpiderManNoir",
+   "why": "Kraglin banishes the top card Spider-Man Noir prepares."
+  },
+  {
+   "a": "AntiVenom",
+   "b": "Kraglin",
+   "why": "Kraglin banishes the top card Anti-Venom prepares."
   }
  ]
 }

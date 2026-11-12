@@ -516,6 +516,33 @@
      ]
     }
    ]
+  },
+  "WebSling": {
+   "reviewedText": "On Reveal: Next turn, one of your cards here is Moveable and gets +1 Power when it moves. (your choice)",
+   "note": "Engine review: the parser folded \"+1 Power when it moves\" into a second grant_moveable; it is a buff of the chosen card, paid when it moves.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "grant_moveable",
+       "target": "own_here",
+       "magnitude": null,
+       "selectors": []
+      },
+      {
+       "kind": "buff",
+       "target": "own_here",
+       "magnitude": 1,
+       "selectors": []
+      }
+     ],
+     "text": "Next turn, one of your cards here is Moveable and gets +1 Power when it moves.",
+     "notes": [
+      "one card of your choice; the +1 Power comes only when it moves"
+     ]
+    }
+   ]
   }
  }
 }

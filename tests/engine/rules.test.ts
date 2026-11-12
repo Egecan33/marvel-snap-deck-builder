@@ -151,6 +151,11 @@ describe('validateDeck: mode and collection notes (rules §5, 7-9 and 12)', () =
     expect(isCheckedFormat(findFormat(db, 'made-up-mode'))).toBe(false);
   });
 
+  it('7 MODE_UNVERIFIED: an empty mode id is not silently Ranked (engine review)', () => {
+    const v = validateDeck(deckOf(fantomex, ''), db);
+    expect(codes(v)).toEqual(['MODE_UNVERIFIED']);
+  });
+
   it('8 MODE_LIST_STALE: a stale ban list warns with its date and keeps the deck legal', () => {
     const v = validateDeck(deckOf(fantomex, 'sanctum-showdown'), db);
     expect(codes(v)).toEqual(['MODE_LIST_STALE']);

@@ -281,6 +281,16 @@ export interface EffectRule { kind: EffectKind; rx: RegExp; fixed: Target | null
 const rule = (kind: EffectKind, src: string, fixed: Target | null = null): EffectRule => ({ kind, rx: new RegExp(src, 'gi'), fixed });
 
 /** Effect cores. Order matters: an earlier rule claims its span of the sentence first. */
+/*
+ * Card-specific phrases below (AGENTS rule 2: a hardcode needs a reason). Some alternatives quote one
+ * card's wording: "Replace this with \d Kangs" (Kang), 'Limbo' (Limbo), "with \"oink!\"" (Spider-Ham),
+ * "Judge the worthy again", "33% chance to HULK OUT!", and the token names of gen_board (Rock, Squirrel,
+ * DoomBot, ..., Cap's Shield). They stay here because each is a verb phrase of the sentence grammar, not a
+ * list of cards: the parser needs the phrase to find the effect span and its target, which an override
+ * (whole reviewed clauses) would also give but at the cost of freezing the card's reading against text
+ * changes. The token list mirrors `Card.tokens` names: a token missing from it is not read as a
+ * board add, so add its name here when the clause audit or the coverage report shows the miss.
+ */
 export const EFFECT_RULES: readonly EffectRule[] = [
   rule('deny_on_reveal', "On Reveal abilities won't happen here", 'location'),
   rule('repeat_on_reveal', "its ability happens again|repeat the On Reveal abilities of|the On Reveal abilities of (.*?) repeat|your On Reveal abilities here repeat|uses that card's On Reveal|Use \\d On Reveals from cards released before Rama-Tut's time|Use the highest-Cost On Reveal in your hand|repeat (this|its On Reveal) ability|Judge the worthy again"),

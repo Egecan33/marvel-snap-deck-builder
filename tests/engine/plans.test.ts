@@ -20,8 +20,11 @@ const UNRELATED = ['Hawkeye', 'Medusa', 'Starlord', 'Gamora', 'Ironheart', 'MrFa
 describe('sync-data/plans.json', () => {
   const plans = db.plans();
 
-  it('holds the 18 families of theory §2 and is well-formed', () => {
-    expect(plans).toHaveLength(18);
+  it('holds the 18 families of theory §2, plus unspent-energy (engine review), and is well-formed', () => {
+    // unspent-energy was added after the engine review (2026-11-13) from the mechanics §4 axis of the same name:
+    // without it Sunspot and Bruce Banner were "built around" inside Move decks that did not use them.
+    expect(plans).toHaveLength(19);
+    expect(plans.filter((p) => p.id !== 'unspent-energy')).toHaveLength(18);
     expect(checkPlans(plans, TECH_ROLES.map((r) => r.id))).toEqual([]);
   });
 

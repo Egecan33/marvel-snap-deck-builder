@@ -12,7 +12,7 @@
  */
 import { costPred, effs, hasTag, hasTrigger, isDrawback, powerPred } from '../features/traits';
 import type { Clause } from '../types';
-import { discardPicks, quote, type Node, type RawEdge } from './rules';
+import { banishesTop, destroysOwnNegative, discardPicks, quote, type Node, type RawEdge } from './rules';
 
 const NOT_OWN_SIDE = /enemy|opponent|\bALL\b|Nobody|\bANY\b|\bEACH\b|Each player|each player/;
 const POSITIVE = new Set(['buff', 'cost_reduce', 'repeat_on_reveal', 'repeat_ongoing', 'bounce', 'draw', 'power_double', 'play_restriction', 'summon']);
@@ -24,8 +24,11 @@ function edge(A: Node, B: Node, rule: string, family: string, kind: 'synergy' | 
 /** A sentence that rewards your cards of some cost or Power (not created, random or enemy cards). */
 function ownFilterClause(c: Clause): boolean {
   if (NOT_OWN_SIDE.test(c.text)) return false;
+  // Created or random cards, not your deck's cards ("Kangs" is Kang's wording for its created copies; kept as a phrase, see vocab.ts).
   if (/random|Create a|Replace this with \d|Kangs|until it gains|banish/i.test(c.text)) return false;
-  if (/Add a/.test(c.text) && !/from your (hand|deck)/.test(c.text)) return false;
+  // A created card's own cost is not a reward for your cards of that cost ("Add two copies of this that cost 0", Swarm).
+  if (/copies of this|a copy of this/i.test(c.text)) return false;
+  if (/\bAdd (an?|one|two|three|four|\d+)\b/.test(c.text) && !/from your (hand|deck)/.test(c.text)) return false;
   const kinds = new Set(c.effects.map((e) => e.kind));
   if (c.conditions.includes('played_1cost') || c.conditions.includes('have_1cost_here')) return true;
   if (kinds.has('summon') && !/from your hand|from your deck|hand or deck/.test(c.text)) return false;
@@ -200,6 +203,27 @@ function boardEdges(nodes: readonly Node[], out: RawEdge[]): void {
   }
 }
 
+/** R11: cards that undo each other's set-up: destroying your negative cards, banishing a prepared top card. */
+function undoEdges(nodes: readonly Node[], out: RawEdge[]): void {
+  for (const A of nodes) {
+    if (destroysOwnNegative(A.v)) {
+      const h = effs(A.f.clauses, /^destroy$/, /^own_(?!player)/).find((x) => x.effect.selectors.includes('sel:power_le'))!;
+      for (const B of nodes) {
+        if (A === B || !(B.f.axes.self_affliction?.p ?? 0)) continue;
+        out.push(edge(A, B, 'anti:destroys_negative_own', 'anti:undo', 'anti', 2, `${A.card.name} destroys your cards at 0 Power or less; ${B.card.name} wants your negative-Power cards alive`, h.clause.text, undefined, true));
+      }
+    }
+    if (banishesTop(A.v)) {
+      const h = effs(A.f.clauses, /^banish$/, /^own_deck$/)[0]!;
+      for (const B of nodes) {
+        if (A === B) continue;
+        const prep = effs(B.f.clauses, /^(buff|power_set)$/, /^(own_deck|both)$/).find((x) => /top/.test(x.clause.text));
+        if (prep) out.push(edge(A, B, 'anti:banish_prepared_top', 'anti:undo', 'anti', 2, `${A.card.name} banishes the top card of your deck that ${B.card.name} prepares`, h.clause.text, prep.clause.text));
+      }
+    }
+  }
+}
+
 export function templateEdges(nodes: readonly Node[]): RawEdge[] {
   const out: RawEdge[] = [];
   filterEdges(nodes, out);
@@ -208,6 +232,7 @@ export function templateEdges(nodes: readonly Node[]): RawEdge[] {
   silenceEdges(nodes, out);
   protectEdges(nodes, out);
   boardEdges(nodes, out);
+  undoEdges(nodes, out);
   return out;
 }
 

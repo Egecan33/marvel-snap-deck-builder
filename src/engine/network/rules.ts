@@ -103,7 +103,7 @@ function pairOk(axis: string, A: Node, B: Node): boolean {
       if (!counts && effs(a.clauses, /^(move|grant_moveable)$/).every((h) => h.effect.target === 'self' || (costPred(h.clause.text)?.test(B.card.cost) === false))) return false;
       // A mover that takes your highest-Power card(s) (Doctor Strange) rarely picks a small card.
       if (!counts && B.card.power < HIGH_POWER && effs(a.clauses, /^(move|grant_moveable)$/).every((h) => h.effect.target === 'self' || h.effect.selectors.includes('sel:highest_power'))) return false;
-            return counts || movesOthers(a.clauses);      // a self-mover does not move another card's "when this moves"
+            return counts || movesOthers(a.clauses, A.card);      // a self-mover (or a token mover such as Sam Wilson's Shield) does not move another card's "when this moves"
     }
     case 'discard': {
       const counts = hasTag(b.tags, /^(scale:discard_count|cond:have_discarded|cond:have_discarded_and_destroyed)$/) || hasTrigger(b.clauses, /^on_other_discarded$/)
@@ -176,6 +176,8 @@ function pairOk(axis: string, A: Node, B: Node): boolean {
       return hasTag(a.tags, /^cond:played_last_turn$/) || effs(a.clauses, /^energy_gain$/, /^own_player$/).some((h) => h.clause.conditions.length === 0
         && /^(on_reveal|activate|start_of_turn|on_own_play)$/.test(h.clause.trigger) && !/if they have any/.test(A.card.text));
     case 'self_affliction':
+      // A card that destroys your cards at 0 Power or less removes the negative cards a switch-sides payoff wants (Hellcow Fractured Frontier x Annihilus); anti in templates.ts.
+      if (destroysOwnNegative(a)) return false;
       // Printed negative Power is not an affliction: it feeds "switch sides", not "cards are afflicted with -5 Power".
       if (!effs(b.clauses, /^switch_sides$/, /^own_(?!player)/).length) return effs(a.clauses, /^afflict$/, /^(own_here|all_here|all_anywhere)$/).length > 0;
       return true;
@@ -202,6 +204,8 @@ function pairOk(axis: string, A: Node, B: Node): boolean {
     case 'multi_play':
       return !/if it has an On Reveal/.test(B.card.text) || hasTrigger(a.clauses, /^on_reveal$/);
     case 'deck_top': {
+      // A payoff that banishes the top card throws the preparation away (Kraglin x Spider-Man Noir); only a stacked card feeds it. Anti in templates.ts.
+      if (banishesTop(b) && !effs(a.clauses, /^deck_stack$/).length) return false;
       const top = effs(a.clauses, /^(buff|cost_reduce|power_set|deck_stack)$/, /^(own_deck|both)$/).every((h) => h.effect.kind === 'deck_stack' || /top/.test(h.clause.text));
       return !top || deckPuller(b) === 'top';
     }
@@ -220,6 +224,14 @@ function pairOk(axis: string, A: Node, B: Node): boolean {
       return true;
   }
 }
+
+/** Destroys your own cards at 0 Power or less (Hellcow Fractured Frontier). */
+export const destroysOwnNegative = (v: CardView): boolean =>
+  effs(v.clauses, /^destroy$/, /^own_(?!player)/).some((h) => h.effect.selectors.includes('sel:power_le') && /\b0 Power or less|Power below 0|negative Power/.test(h.clause.text));
+
+/** Banishes the top card of your deck (Kraglin). */
+export const banishesTop = (v: CardView): boolean =>
+  effs(v.clauses, /^banish$/, /^own_deck$/).some((h) => h.effect.selectors.includes('sel:top_of_deck') || /top card/.test(h.clause.text));
 
 /** B's own-side 1-Cost sentence accepts A: a bounce or a repeat needs an On Reveal to return or repeat. */
 function oneCostPayoffAccepts(b: CardView, A: Node): boolean {

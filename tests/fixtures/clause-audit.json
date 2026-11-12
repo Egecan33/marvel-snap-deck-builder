@@ -2184,6 +2184,46 @@
      ]
     }
    ]
+  },
+  {
+   "defId": "Kang",
+   "why": "engine-review",
+   "text": "Game Start: Replace this with 4 Kangs with text from random cards that Cost 3 or more.",
+   "clauses": [
+    {
+     "trigger": "game_start",
+     "effects": [
+      [
+       "gen_deck",
+       "own_deck"
+      ],
+      [
+       "copy_text",
+       "own_deck"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "WebSling",
+   "why": "engine-review",
+   "text": "On Reveal: Next turn, one of your cards here is Moveable and gets +1 Power when it moves. (your choice)",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "grant_moveable",
+       "own_here"
+      ],
+      [
+       "buff",
+       "own_here"
+      ]
+     ]
+    }
+   ]
   }
  ]
 }

@@ -14,6 +14,8 @@ interface Audit {
   knownTrue: { a: string; b: string; why: string }[];
   knownUnrelated: { a: string; b: string }[];
   anti: { a: string; b: string; rule: string; why: string }[];
+  heldOut: { seed: number; precision: { strict: number; lenient: number; true: number; false: number }; sample: Judged[] };
+  reviewFalse: { a: string; b: string; why: string }[];
 }
 const audit = JSON.parse(readFileSync(fileURLToPath(new URL('../fixtures/edge-audit.json', import.meta.url)), 'utf8')) as Audit;
 
@@ -58,6 +60,27 @@ describe('edge audit (tests/fixtures/edge-audit.json)', () => {
   });
 
   it.each(audit.knownUnrelated.map((k) => [k.a, k.b]))('unrelated %s + %s has no strong edge', (a, b) => {
+    expect(card(a) && card(b)).toBeTruthy();
+    expect(edge(a, b)?.strong ?? false).toBe(false);
+  });
+
+  it('held-out sample (after the engine review) keeps its judgements and records its precision', () => {
+    const h = audit.heldOut;
+    expect(h.sample).toHaveLength(40);
+    const inSample = new Set(audit.sample.map((s) => `${s.a}|${s.b}`));
+    const t = h.sample.filter((s) => s.judgement === 'true').length;
+    const ok = h.sample.filter((s) => s.judgement !== 'false').length;
+    expect(h.precision.strict).toBeCloseTo(t / 40, 3);
+    expect(h.precision.lenient).toBeCloseTo(ok / 40, 3);
+    expect(h.precision.lenient).toBeGreaterThanOrEqual(0.95);
+    for (const s of h.sample) {
+      expect(inSample.has(`${s.a}|${s.b}`), `${s.a}|${s.b} is held out`).toBe(false);
+      if (s.judgement === 'false') expect(edge(s.a, s.b)?.strong ?? false).toBe(false);
+      else expect(edge(s.a, s.b)?.strong, `${s.a}|${s.b} judged ${s.judgement}`).toBe(true);
+    }
+  });
+
+  it.each(audit.reviewFalse.map((k) => [k.a, k.b, k.why]))('engine review: %s + %s is not strong (%s)', (a, b) => {
     expect(card(a) && card(b)).toBeTruthy();
     expect(edge(a, b)?.strong ?? false).toBe(false);
   });

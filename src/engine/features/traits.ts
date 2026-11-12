@@ -127,9 +127,26 @@ export function powerPred(s: string): { n: number; test: (power: number) => bool
 export const selfMover = (clauses: readonly Clause[]): boolean =>
   hasTrigger(clauses, /^moveable$/) || effs(clauses, /^move$/, /^self$/).length > 0 || effs(clauses, /^grant_moveable$/, /^self$/).length > 0;
 
-/** The card moves or grants movement to cards other than itself. */
-export const movesOthers = (clauses: readonly Clause[]): boolean =>
-  effs(clauses, /^move$/, /^(own_(?!player)|any_played_card|moved_card)/).length > 0 || effs(clauses, /^grant_moveable$/, /^(own|all)/).length > 0;
+const letters = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * A grant of Moveable whose subject is a card this card creates (Sam Wilson: "Cap's Shield is Moveable"):
+ * the token names come from `Card.tokens` (synced data), matched by letters against the sentence.
+ */
+export function grantsTokenOnly(text: string, card?: Pick<Card, 'tokens'>): boolean {
+  if (!card?.tokens.length) return false;
+  const subject = letters(text.split(/\b(?:is|are|gains?)\s+Moveable/i)[0] ?? '');
+  return subject.length > 0 && card.tokens.some((t) => subject.endsWith(letters(t)));
+}
+
+/** The card moves or grants movement to cards other than itself (a grant to its own token counts as the token moving itself). */
+export const movesOthers = (clauses: readonly Clause[], card?: Pick<Card, 'tokens'>): boolean =>
+  effs(clauses, /^move$/, /^(own_(?!player)|any_played_card|moved_card)/).length > 0
+  || effs(clauses, /^grant_moveable$/, /^(own|all)/).some((h) => !grantsTokenOnly(h.clause.text, card));
+
+/** The card makes a card it creates Moveable (Sam Wilson's Cap's Shield): a mover for move counts only. */
+export const tokenMover = (clauses: readonly Clause[], card: Pick<Card, 'tokens'>): boolean =>
+  effs(clauses, /^grant_moveable$/).some((h) => grantsTokenOnly(h.clause.text, card));
 
 /**
  * Cards whose own text hurts their owner: candidates for own-side text removal (Zero, Sauron, Enchantress).

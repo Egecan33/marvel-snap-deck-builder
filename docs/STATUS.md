@@ -24,7 +24,7 @@ Last updated: 2026-11-13. Resumed at the owner's request. Stages 0-2 done. A sin
 | 0 | Research (5 topics) with one fact-check pass, files in `docs/research/` | done; all five files carry a verification log |
 | 1 | Design doc `docs/superpowers/specs/2026-11-12-snap-forge-design.md` and plan `docs/superpowers/plans/2026-11-12-snap-forge.md` | done |
 | 2 | Foundation and data: plan Tasks 1-2 | done (scaffold, sync steps, fixtures; `pnpm sync` was run for build 58.15.3) |
-| 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | **in progress** (workflow) |
+| 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | done (review fixed 2026-11-13: held-out strong-edge precision 82.5% strict / 100% lenient on 40; clause audit 124/125 parser, 125/125 with overrides; floor 87/200 meta lists, 0/50 random piles; brews 10/20; 404 tests) |
 | 4 | API and UI: plan Tasks 10-11 | not started |
 | 5 | End-to-end tests and calibration: plan Task 12 | not started |
 | 6 | Final review by driving the real UI and looking at screenshots | not started |

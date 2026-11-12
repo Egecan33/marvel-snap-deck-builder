@@ -234,6 +234,8 @@ function targetsOf(sp: Span, i: number, spans: readonly Span[], masked: string, 
       if (/^transform into/i.test(core) || /^become a copy/i.test(core)) return ['self'];
       return [classifyPhrase(objectOf(core.replace(/^\s*(transform(s)?|unlock (the|their) potential( of)?)\s*/i, '') + ' ' + after)) ?? (/their potential/i.test(core) ? PRONOUN : 'self')];
     default: {
+      // "Replace this with 4 Kangs with text from random cards": the text lands on the cards just created (engine review).
+      if (kind === 'copy_text' && /^with\b/i.test(core) && i > 0 && /^gen_/.test(spans[i - 1]!.kind)) return ['inherit'];
       // destroy, silence, steal_text, copy_text, banish, control and other object verbs
       if (/\b(its|it)\b/i.test(core.replace(VERB, '')) && !/\bfrom\b/i.test(core)) return [PRONOUN];
       return [object ?? subject ?? 'self'];

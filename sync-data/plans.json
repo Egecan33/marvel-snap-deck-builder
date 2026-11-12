@@ -120,6 +120,16 @@
     "payoffWeight": 0.7
   },
   {
+    "id": "unspent-energy",
+    "name": "Unspent energy",
+    "enablerTraits": ["axis:unspent_energy.e"],
+    "payoffTraits": ["axis:unspent_energy.p"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} leave Energy unspent or add bonus Energy; {payoffs} grow from it and hold a location while you play fewer cards.",
+    "foldsTo": ["big-card-removal"],
+    "payoffWeight": 0.6
+  },
+  {
     "id": "extra-turn",
     "name": "Extra turn",
     "enablerTraits": ["loc_change_location&cond:turn_number"],

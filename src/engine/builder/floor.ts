@@ -21,6 +21,7 @@ import { deckIds } from '../novelty/novelty';
 import { detectPlans } from '../plans/detect';
 import { ENERGY, SYNERGY } from '../rating/constants';
 import { pairStats, names, nameOf } from '../rating/deck';
+import { findFormat, formatName, isCheckedFormat } from '../rules/formats';
 import { isLegal, validateDeck } from '../rules/validate';
 import type { CardDb, Deck, EngineContext, FloorCheck, FloorReport } from '../types';
 
@@ -51,6 +52,10 @@ export const FLOOR: Record<string, number> = {
   looseCards: 4,
   /** C5: strong partners of a build-around card in the deck, at least (research 3, kept). */
   buildAroundPartners: 3,
+  /** Ablation (theory §4.8) for a card outside the plans: synergy sub-score drop, at least (engine review, 2026-11-13). */
+  ablationSynergy: 0.05,
+  /** ... together with this many strong partners that are pieces of the primary plan. */
+  ablationPiecePartners: 2,
 };
 
 /** Games of the energy model behind C2-C3 (the rating's count, so both share the model's cache). */
@@ -104,6 +109,37 @@ export function synergyValue(db: CardDb, ids: readonly string[]): number {
   return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0;
 }
 
+/**
+ * Conditions a card states about your own past actions, and the axis whose enablers meet them
+ * (text/vocab.ts condition names). A hardcode because the condition names are parser vocabulary,
+ * not card data; extend it when the vocabulary grows. HEURISTIC: an enabler being in the deck does
+ * not guarantee the condition is met in a game.
+ */
+const CONDITION_NEEDS: Record<string, { axes: string[]; text: string }> = {
+  have_discarded: { axes: ['discard'], text: 'discards one of your cards' },
+  have_destroyed: { axes: ['destroy'], text: 'destroys one of your cards' },
+  have_discarded_and_destroyed: { axes: ['discard', 'destroy'], text: 'discards and destroys your cards' },
+};
+
+/**
+ * Stated conditions of `card` that no other card of `ids` can meet (engine review: Fantomex's
+ * "If you've had cards discarded and destroyed" in a deck with no discard). One line per unmet condition.
+ */
+export function unmetConditions(db: CardDb, card: string, ids: readonly string[]): string[] {
+  const f = db.features(card);
+  if (!f) return [];
+  const out: string[] = [];
+  for (const cl of f.clauses) {
+    for (const cond of cl.conditions) {
+      const need = CONDITION_NEEDS[cond];
+      if (!need) continue;
+      const missing = need.axes.filter((axis) => !ids.some((x) => x !== card && (db.features(x)?.axes[axis as keyof typeof f.axes]?.e ?? 0) > 0));
+      if (missing.length) out.push(`${nameOf(db, card)} needs a card that ${need.text} ("${cl.text}"), and no other card in the deck ${missing.length === need.axes.length ? 'does' : `is a ${missing.join(' or ')} enabler`}.`);
+    }
+  }
+  return [...new Set(out)];
+}
+
 function check(key: string, label: string, value: number, threshold: number, atLeast: boolean, detail: string, provenance: FloorCheck['provenance']): FloorCheck {
   const v = Number.isFinite(value) ? value : 0;
   return { key, label, value: v, threshold, passed: atLeast ? v >= threshold : v <= threshold, detail, provenance };
@@ -123,7 +159,12 @@ export function checkFloor(deck: Deck, ctx: EngineContext, buildAround: string[]
   const violations = validateDeck(deck, db, ctx.owned);
   const errors = violations.filter((v) => v.severity === 'error');
   const legal = isLegal(violations) && ids.length === 12;
-  checks.push(check('legal', 'Legal', legal ? 1 : 0, 1, true, legal ? '12 different released cards, legal in the mode.' : errors.map((v) => v.message).join(' ') || `${ids.length} known cards; a deck needs 12.`, 'derived'));
+  const fmtId = typeof deck?.format === 'string' ? deck.format : 'ranked';
+  const fmt = findFormat(db, fmtId);
+  const legalText = isCheckedFormat(fmt) ? `12 different released cards, legal in ${fmt!.name}.`
+    : fmt && !fmt.constructed ? `12 different released cards, legal under Ranked rules; ${fmt.name} decks are drafted in-game.`
+      : `12 different released cards, legal under Ranked rules; ${formatName(db, fmtId)} restrictions are not verified.`;
+  checks.push(check('legal', 'Legal', legal ? 1 : 0, 1, true, legal ? legalText : errors.map((v) => v.message).join(' ') || `${ids.length} known cards; a deck needs 12.`, 'derived'));
 
   // C2-C3 energy (derived model).
   const m = energyModel(asDeck(deck, ids), db, undefined, FLOOR_ENERGY_GAMES);
@@ -182,20 +223,34 @@ export function checkFloor(deck: Deck, ctx: EngineContext, buildAround: string[]
     checks.push(check(`partners:${card}`, `${nameOf(db, card)} partners`, partners.length, FLOOR.buildAroundPartners!, true,
       `${nameOf(db, card)} has ${partners.length} strong partner${partners.length === 1 ? '' : 's'}${partners.length ? ` (${names(db, partners)})` : ''}; at least ${FLOOR.buildAroundPartners} needed.`, 'heuristic'));
     const rest = ids.filter((x) => x !== card);
-    const without = detectPlans(asDeck(deck, rest), ctx).primary;
+    const withoutReport = detectPlans(asDeck(deck, rest), ctx);
+    const without = withoutReport.primary;
     const wa = without?.assembly ?? 0;
     checks.push(check(`without:${card}`, `Plan without ${nameOf(db, card)}`, wa, FLOOR.planAssembly!, true,
       without ? `Without ${nameOf(db, card)}: ${without.name} still assembles in ${pct(wa)} by turn ${without.keyTurn}.` : `Without ${nameOf(db, card)} no plan reaches ${pct(FLOOR.planAssembly!)} assembly.`, 'heuristic'));
-    // Ablation (theory §4.8): without the card the plan or the synergy must get weaker, else it is decoration.
-    const sBefore = p?.strength ?? 0;
-    const sAfter = without?.strength ?? 0;
+    // Ablation (theory §4.8): without the card its plan or the deck's synergy must get materially weaker, else it is decoration.
+    // Changed after the engine review (2026-11-13): a synergy drop of any size let decks pass whose primary plan did not use the
+    // card at all (Sunspot in a Move deck, 98% assembly with or without it). The card must now be an enabler or payoff of the
+    // primary or secondary plan and that plan must weaken without it, or the synergy sub-score must drop by
+    // `FLOOR.ablationSynergy` with at least `FLOOR.ablationPiecePartners` strong partners that are pieces of the primary plan
+    // (partners in the secondary plan only do not count: Sunspot's energy partners sat beside a Move deck) (HEURISTIC).
+    const planOf = [plans.primary, plans.secondary].find((x) => x && (x.enablers.includes(card) || x.payoffs.includes(card))) ?? null;
+    const pieces = new Set(plans.primary ? [...plans.primary.enablers, ...plans.primary.payoffs] : []);
+    const piecePartners = partners.filter((x) => pieces.has(x));
+    const sBefore = planOf?.strength ?? 0;
+    const sAfter = planOf ? (withoutReport.all.find((x) => x.planId === planOf.planId)?.strength ?? 0) : 0;
     const yBefore = synergyValue(db, ids);
     const yAfter = synergyValue(db, rest);
     const dPlan = sBefore - sAfter;
     const dSyn = yBefore - yAfter;
-    const matters = dPlan > 1e-9 || dSyn > 1e-9;
+    const inPlan = planOf !== null && dPlan > 1e-9;
+    const material = dSyn >= FLOOR.ablationSynergy! && piecePartners.length >= FLOOR.ablationPiecePartners!;
+    const matters = inPlan || material;
+    const why = inPlan
+      ? `${nameOf(db, card)} is ${planOf!.enablers.includes(card) ? 'an enabler' : 'a payoff'} of ${planOf!.name}: its strength goes ${pct(sBefore)} -> ${pct(sAfter)} without it`
+      : `${nameOf(db, card)} is ${planOf ? `in ${planOf.name} but the plan does not weaken without it` : `in neither the primary nor the secondary plan${plans.primary ? ` (${plans.primary.name})` : ''}`}; the synergy sub-score goes ${pct(yBefore)} -> ${pct(yAfter)} with ${piecePartners.length} strong partner${piecePartners.length === 1 ? '' : 's'} among the primary plan's pieces${piecePartners.length ? ` (${names(db, piecePartners)})` : ''}`;
     checks.push(check(`ablation:${card}`, `${nameOf(db, card)} is load-bearing`, matters ? 1 : 0, 1, true,
-      `Removing ${nameOf(db, card)} changes plan strength ${pct(sBefore)} -> ${pct(sAfter)} and the synergy sub-score ${pct(yBefore)} -> ${pct(yAfter)}${matters ? '' : ': neither drops, so the card is decoration'}.`, 'heuristic'));
+      `${why}${matters ? '.' : `: neither the plan nor a drop of ${pct(FLOOR.ablationSynergy!)} with ${FLOOR.ablationPiecePartners} primary-plan partners, so the card is decoration.`}`, 'heuristic'));
   }
 
   return { passed: checks.every((c) => c.passed), checks };

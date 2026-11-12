@@ -11,7 +11,9 @@
  * The weights and the bands (below 35 meta, 35-59 variant, 60-79 off-meta, 80+ brew) are HEURISTIC
  * (theory §5). With no meta snapshot every list-based term has nothing to compare against: ListDistance
  * is 1 and every card is rare, so the report sets `claimsWithheld` and the number must not be read as
- * evidence of originality.
+ * evidence of originality. Since the engine review (2026-11-13) such a deck, and any deck with fewer
+ * than 12 known cards, gets novelty 0 and band 'unknown' with the reason in `claimsWithheld`: the
+ * terms are still reported in `parts`, but no band is claimed.
  */
 import type { CardDb, CardEdge, Deck, EngineContext, NearList, NoveltyReport, PairEvidence } from '../types';
 import { coplay, corpusOf, NEW_CARD_MS, rarity } from './clusters';
@@ -114,15 +116,23 @@ export function noveltyOf(deck: Deck, ctx: EngineContext): NoveltyReport {
   const packageNovelty = den > 0 ? num / den : 0;
 
   const raw = 100 * (NOVELTY_WEIGHTS.listDistance * listDistance + NOVELTY_WEIGHTS.connectedRarity * connectedRarity + NOVELTY_WEIGHTS.packageNovelty * packageNovelty);
-  const novelty = Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0;
+  const noLists = !corpus.info || corpus.lists === 0;
+  const partial = ids.length < SIZE;
+  const unknown = noLists || partial;
+  const novelty = unknown ? 0 : Number.isFinite(raw) ? Math.max(0, Math.min(100, Math.round(raw))) : 0;
+  const withheld = [
+    corpus.withheld,
+    partial ? `Novelty is computed for a full deck: ${ids.length} of ${SIZE} known cards, so no novelty band is claimed.` : null,
+    noLists ? 'Without known lists novelty is not claimed (shown as 0, band unknown).' : null,
+  ].filter((x): x is string => x !== null).join(' ') || null;
   return {
     novelty,
-    band: bandOf(novelty),
+    band: unknown ? 'unknown' : bandOf(novelty),
     parts: { listDistance, connectedRarity, packageNovelty },
     nearest,
     rareCards,
     pairs,
     corpus: corpus.info,
-    claimsWithheld: corpus.withheld,
+    claimsWithheld: withheld,
   };
 }

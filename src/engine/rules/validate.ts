@@ -72,7 +72,8 @@ function idsOf(deck: Deck): string[] {
 export function validateDeck(deck: Deck, db: CardDb, owned?: Record<string, true> | null): Violation[] {
   const out: Violation[] = [];
   const ids = idsOf(deck);
-  const formatId = deck && typeof deck.format === 'string' && deck.format ? deck.format : 'ranked';
+  // A missing format is Ranked; an empty id is treated like any unknown id (MODE_UNVERIFIED), not silently as Ranked (engine review).
+  const formatId = deck && typeof deck.format === 'string' ? deck.format : 'ranked';
   const format = findFormat(db, formatId);
 
   // 1. Deck size (rules §1.1).

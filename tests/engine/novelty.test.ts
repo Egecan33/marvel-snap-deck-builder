@@ -107,6 +107,18 @@ describe('noveltyOf', () => {
       expect(r.nearest).toEqual([]);
       expect(Number.isNaN(r.novelty)).toBe(false);
       for (const p of r.pairs) expect(p.unexplored).toBe(0);
+      // Engine review: without known lists no novelty or band is claimed.
+      expect(r.novelty).toBe(0);
+      expect(r.band).toBe('unknown');
+    }
+  });
+
+  it('claims no band for a deck with fewer than 12 known cards (engine review)', () => {
+    for (const ids of [[], ['NotACard', 'AlsoNot'], [...top.cards].slice(0, 11)]) {
+      const r = noveltyOf(deckOf(ids), ctx);
+      expect(r.band).toBe('unknown');
+      expect(r.novelty).toBe(0);
+      expect(r.claimsWithheld).toMatch(/full deck/);
     }
   });
 
