@@ -14,3 +14,15 @@ Measured on 2026-11-12, game build 58.15.3: 791 card rows = 511 released, 31 upc
 - **Reference decks** (`tests/fixtures/decks/`: fantomex, kluh, magneto, zombie, arthur, patriot) use the site block: `# (cost) Name` lines, `#`, a short code, `#`, a comment. The short code was produced by a small encoder in `src/ingest/fixtures.ts`; Task 3 must cross-check it against its port of `docs/research/analysis/deckcode/deckcode.mjs`.
 - **Features hook.** `fixtureHooks.compute` in `tests/helpers/fixture-db.ts` is null, so `features()` is undefined and `edges()` empty. Task 5 sets it and calls `resetFixtureDb()`. `src/ingest/features.ts` is a stub.
 - **Sync.** Images download serially, 1 s apart. `pnpm sync meta` refuses within 6 h of the last run unless `--force`.
+
+## After Task 3 (rules and import/export)
+
+72 tests in `tests/engine/{rules,io}.test.ts`; suite 142 tests.
+
+- **Exports beyond the plan.** `rules/formats.ts`: `RANKED`, `findFormat(db, id)`, `isCheckedFormat(fmt)` (verified and constructed), `formatName(db, id)`. `io/deckcode.ts`: `shortCardCode(defId)`, `DECK_CODE_TOKEN`. `io/resolve.ts`: `tidy`, `candidates`, `lookup`, `resolveLine`, `rejectReason`, `LIST_LINE` (shared line reading; use these for any name search).
+- **Unverified modes.** `validateDeck` gives `MODE_UNVERIFIED` (warning) and checks Ranked rules only; `isLegal` can still be true. The UI must call `isCheckedFormat(findFormat(db, deck.format))` before claiming a pass for the mode itself. Draft gives only `MODE_NOT_CONSTRUCTED` (info). An unknown format id is treated as unverified.
+- **Extra codes.** `SKILL_CARDS` (info, one line naming the skills; no cap known). `gateFor` also returns `IN_DECK`; gate order: UNKNOWN_CARD, NOT_DECKABLE, UNRELEASED, IN_DECK, MODE_BANNED, NOT_OWNED. `NOT_DECKABLE.cardIds` holds the token plus the released cards whose `tokens` create it.
+- **Not implemented:** checks 10 `STATS_STALE`, 11 `RECENTLY_CHANGED`, 13 `ROTATION_SOON`: the CardDb has no sync date or balance-change log. `UNKNOWN_CARD` says "since the card sync" without a date for the same reason.
+- **Decoding.** `decodeDeckCode` keeps unknown ids as written (an unknown short piece stays a short code), accepts any card count, padding-less and URL-safe base64, and returns null for anything else (a short code needs at least one known piece). `parseDecklist`: the first code anywhere in the text wins (also embedded in a sentence) and other lines are then ignored; tokens never resolve, upcoming cards do (validation reports them); `parseCollection` owns released cards only. Collection unresolved entries are strings, decklist ones carry line numbers.
+- **Export.** `exportDecklist` sorts by cost then `localeCompare(name, 'en')` and writes the short code in that order; it reproduces the six fixture blocks byte for byte. No code unless 12 different known cards; unknown ids are written `# (?) id` so re-import reports them.
+- **Cross-check.** The six fixture short codes agree with the port and with `deckcode.mjs` itself (`decode` + `encodeShort`, byte-equal).
