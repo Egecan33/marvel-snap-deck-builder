@@ -1,0 +1,182 @@
+[
+  {
+    "id": "horde",
+    "name": "Zombie Horde (counter scaling, go-wide)",
+    "enablerTraits": ["horde_own"],
+    "payoffTraits": ["axis:horde.p"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "{enablers} grow the Zombie Horde all game; {payoffs} cash it in on turns 5 and 6 to win two lanes.",
+    "foldsTo": ["power-reset", "text-removal"],
+    "payoffWeight": 0.9
+  },
+  {
+    "id": "small-on-reveals",
+    "name": "Tempo: many small On Reveals",
+    "enablerTraits": ["on_reveal&cost:1-2"],
+    "payoffTraits": ["axis:multi_play.p"],
+    "minEnablers": 3, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "{enablers} let you play two or more cards a turn; {payoffs} grow from it and land with other cards on turn 6.",
+    "foldsTo": ["on-reveal-denial", "sweeper", "hand-attack"],
+    "payoffWeight": 0.8
+  },
+  {
+    "id": "put-into-play",
+    "name": "Put-into-play burst",
+    "enablerTraits": ["summon_own"],
+    "payoffTraits": ["cost:3-4&power:5-99"],
+    "minEnablers": 2, "minPayoffs": 2, "keyTurn": 6,
+    "takesLocations": "{enablers} put bodies such as {payoffs} into the other locations at once on the last turns.",
+    "foldsTo": ["add-lock", "on-reveal-denial"],
+    "payoffWeight": 0.85
+  },
+  {
+    "id": "affliction",
+    "name": "Affliction and Power theft",
+    "enablerTraits": ["afflict_enemy", "power_steal_enemy", "power_steal_enemy_hand", "axis:affliction.e", "axis:power_steal.e"],
+    "payoffTraits": ["axis:affliction.p", "axis:power_steal.p"],
+    "minEnablers": 2, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} lower the enemy totals while {payoffs} turn the stolen or lost Power into lanes.",
+    "foldsTo": ["reduction-immunity", "power-reset"],
+    "payoffWeight": 0.85
+  },
+  {
+    "id": "shuffle-in",
+    "name": "Shuffle-in and draw",
+    "enablerTraits": ["gen_deck_deck"],
+    "payoffTraits": ["draw_player", "repeat_on_reveal_own", "axis:deck_top.p"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "{enablers} add strong cards to your deck; {payoffs} draw or repeat them on turns 5 and 6.",
+    "foldsTo": ["on-reveal-denial", "power-reset"],
+    "payoffWeight": 0.75
+  },
+  {
+    "id": "no-ability",
+    "name": "No-ability stats, go-tall",
+    "enablerTraits": ["no_ability", "creates:no_ability"],
+    "payoffTraits": ["axis:no_ability.p"],
+    "minEnablers": 2, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} put high printed Power or ability-less bodies on the board; {payoffs} multiply it on curve.",
+    "foldsTo": ["big-card-removal", "cost-lock", "reduction-immunity"],
+    "payoffWeight": 0.85
+  },
+  {
+    "id": "disruption",
+    "name": "Disruption as the plan",
+    "enablerTraits": ["role:text-removal", "role:on-reveal-denial", "role:power-reset", "role:cost-lock", "role:add-lock", "role:ongoing-removal", "role:hand-attack", "role:created-tax", "role:big-card-removal", "role:displacement", "role:lockdown"],
+    "payoffTraits": ["axis:big_power.e"],
+    "minEnablers": 3, "minPayoffs": 1, "keyTurn": 4,
+    "takesLocations": "{enablers} subtract more from the opponent than they cost; {payoffs} supply the Power to win the lanes they leave open.",
+    "foldsTo": [],
+    "payoffWeight": 0.8
+  },
+  {
+    "id": "destroy",
+    "name": "Destroy scaling",
+    "enablerTraits": ["destroy_own", "axis:destroy.e"],
+    "payoffTraits": ["axis:destroy.p"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} destroy your own cards for value; {payoffs} copy, grow or count the destroyed cards.",
+    "foldsTo": ["destroy-lock", "on-reveal-denial", "add-lock"],
+    "payoffWeight": 0.9
+  },
+  {
+    "id": "location-removal",
+    "name": "Location removal",
+    "enablerTraits": ["power_double_self", "power_double_own", "axis:alone.e"],
+    "payoffTraits": ["loc_change_location&cond:alone_here"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "{enablers} win one lane alone; {payoffs} then turns two of three locations into one of one.",
+    "foldsTo": ["on-reveal-denial"],
+    "payoffWeight": 0.75
+  },
+  {
+    "id": "discard",
+    "name": "Discard scaling",
+    "enablerTraits": ["axis:discard.e"],
+    "payoffTraits": ["axis:discard.p"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} discard as fuel; {payoffs} count the discards or come back stronger.",
+    "foldsTo": ["hand-attack", "on-reveal-denial"],
+    "payoffWeight": 0.9
+  },
+  {
+    "id": "ongoing-stacking",
+    "name": "Ongoing stacking",
+    "enablerTraits": ["total_power_location"],
+    "payoffTraits": ["axis:ongoing_amp.e"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "{enablers} multiply or share one lane's total; {payoffs} repeat or copy the Ongoing effects to win a second lane.",
+    "foldsTo": ["ongoing-removal", "text-removal"],
+    "payoffWeight": 0.85
+  },
+  {
+    "id": "extra-energy",
+    "name": "Extra energy",
+    "enablerTraits": ["energy_max_player", "energy_gain_player"],
+    "payoffTraits": ["cost:5-99"],
+    "minEnablers": 1, "minPayoffs": 2, "keyTurn": 5,
+    "takesLocations": "{enablers} give more than 21 Energy over the game so {payoffs} land early or together.",
+    "foldsTo": ["hand-attack"],
+    "payoffWeight": 0.7
+  },
+  {
+    "id": "extra-turn",
+    "name": "Extra turn",
+    "enablerTraits": ["loc_change_location&cond:turn_number"],
+    "payoffTraits": ["cost:6-99"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "{enablers} create a turn 7, when {payoffs} land after the opponent has run out of turns.",
+    "foldsTo": [],
+    "payoffWeight": 0.7
+  },
+  {
+    "id": "move",
+    "name": "Move reallocation",
+    "enablerTraits": ["axis:move.e"],
+    "payoffTraits": ["axis:move.p"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} commit Power early and move it after the opponent commits; {payoffs} grow from the moves.",
+    "foldsTo": ["power-reset", "lockdown"],
+    "payoffWeight": 0.85
+  },
+  {
+    "id": "lockdown",
+    "name": "Lockdown",
+    "enablerTraits": ["role:lockdown"],
+    "payoffTraits": ["cost:1-3&power:4-99"],
+    "minEnablers": 1, "minPayoffs": 2, "keyTurn": 4,
+    "takesLocations": "{payoffs} win a lane early, then {enablers} close it.",
+    "foldsTo": ["displacement"],
+    "payoffWeight": 0.65
+  },
+  {
+    "id": "hidden-power",
+    "name": "Last-turn hidden power",
+    "enablerTraits": ["power_double_own", "reveal_delay_own", "axis:activate_amp.e"],
+    "payoffTraits": ["activate&afflict_enemy", "activate&buff_self", "axis:big_power.e"],
+    "minEnablers": 1, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "{enablers} hold Power off the board until turn 6, when {payoffs} decide the lanes too late to be answered.",
+    "foldsTo": ["text-removal", "on-reveal-denial"],
+    "payoffWeight": 0.65
+  },
+  {
+    "id": "cost-diversity",
+    "name": "Cost-diversity payoff",
+    "enablerTraits": [],
+    "payoffTraits": ["scale:distinct_costs"],
+    "minEnablers": 0, "minPayoffs": 1, "keyTurn": 6,
+    "takesLocations": "Play one card of each cost; {payoffs} count the different costs in play.",
+    "foldsTo": ["cost-lock"],
+    "payoffWeight": 0.6
+  },
+  {
+    "id": "deck-hand-attack",
+    "name": "Deck and hand attack",
+    "enablerTraits": ["role:deck-attack", "role:hand-attack"],
+    "payoffTraits": ["scale:opp_deck_size", "scale:opp_hand_size"],
+    "minEnablers": 2, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} remove or weaken the opponent's key cards before they are played; {payoffs} profit from what is left.",
+    "foldsTo": [],
+    "payoffWeight": 0.65
+  }
+]

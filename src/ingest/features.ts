@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { computeNetwork } from '@/engine/features/compute';
+import { detectPlans } from '@/engine/plans/detect';
 import { coverage, type ParsedEntry } from '@/engine/text/coverage';
 import { applyOverrides, loadOverrides, type Overrides } from '@/engine/text/overrides';
 import { parseCard } from '@/engine/text/parse';
-import type { CardEdge } from '@/engine/types';
+import type { CardDb, CardEdge, MetaArchetype } from '@/engine/types';
 import { buildCardDb } from '@/server/carddb';
 import { writeSyncState, type Db } from '@/server/db';
 import type { Log } from './cards';
@@ -18,6 +19,7 @@ export function readOverrides(root: string = process.cwd()): Overrides {
 export interface FeaturesSummary {
   cards: number; features: number; edges: number; strong: number; anti: number;
   coverage: { noClause: number; unparsed: number; attributeMismatch: number; staleOverrides: string[] };
+  archetypes: { total: number; tagged: number };
   ms: number;
 }
 
@@ -27,8 +29,8 @@ export interface FeaturesSummary {
  * and replace `card_features` and `card_edges` in one transaction. Prints the coverage report and
  * the 30 strongest edges. Idempotent: a rerun gives the same tables.
  *
- * Not done here yet: tagging each meta archetype with its plan family needs the plan definitions
- * of Task 6 (sync-data/plans.json), so `MetaArchetype.planId` stays null.
+ * Then tags every stored meta archetype with the primary plan of its most-played list
+ * (`MetaArchetype.planId`, sync-data/plans.json; null when no plan reaches the threshold).
  */
 export function syncFeatures(db: Db, log: Log, opts: { now?: number; root?: string } = {}): FeaturesSummary {
   const started = Date.now();
@@ -54,6 +56,8 @@ export function syncFeatures(db: Db, log: Log, opts: { now?: number; root?: stri
     for (const e of edges) insertEdge.run(e.a, e.b, e.score, JSON.stringify(e));
   })();
 
+  const archetypes = tagArchetypes(db, buildCardDb(db, now, opts.root));
+
   const summary: FeaturesSummary = {
     cards: released.length,
     features: features.length,
@@ -66,6 +70,7 @@ export function syncFeatures(db: Db, log: Log, opts: { now?: number; root?: stri
       attributeMismatch: cov.attributeMismatch.length,
       staleOverrides: cov.staleOverrides,
     },
+    archetypes,
     ms: Date.now() - started,
   };
   writeSyncState(db, 'features', { implemented: true, ...summary });
@@ -73,6 +78,7 @@ export function syncFeatures(db: Db, log: Log, opts: { now?: number; root?: stri
   const name = (id: string): string => cardDb.get(id)?.name ?? id;
   log(`features: ${summary.cards} released cards, ${summary.features} with features, ${summary.edges} edges (${summary.strong} strong, ${summary.anti} net negative)`);
   log(`coverage: ${summary.coverage.noClause} cards with no clause, ${summary.coverage.unparsed} unparsed sentences, ${summary.coverage.attributeMismatch} attribute disagreements, stale overrides: ${cov.staleOverrides.join(', ') || 'none'}`);
+  log(`plans: ${archetypes.tagged} of ${archetypes.total} meta archetypes tagged with a primary plan`);
   log('30 strongest edges:');
   for (const e of strongest(edges, 30)) {
     log(`  ${e.score.toFixed(3)}  ${name(e.a)} + ${name(e.b)}  [${e.reasons.filter((r) => r.kind === 'synergy').map((r) => r.rule).join(', ')}]`);
@@ -83,4 +89,24 @@ export function syncFeatures(db: Db, log: Log, opts: { now?: number; root?: stri
 /** Highest-scoring edges first; ties by synergy, then ids, so the list is stable. */
 export function strongest(edges: readonly CardEdge[], n: number): CardEdge[] {
   return [...edges].sort((x, y) => y.score - x.score || y.synergy - x.synergy || x.a.localeCompare(y.a) || x.b.localeCompare(y.b)).slice(0, n);
+}
+
+/**
+ * Sets `planId` on every stored meta archetype (all snapshots) to the primary plan that `detectPlans`
+ * finds in the archetype's sample list, or null. Uses the features just written.
+ */
+export function tagArchetypes(db: Db, cardDb: CardDb): { total: number; tagged: number } {
+  const rows = db.prepare('SELECT snapshot, id, json FROM meta_archetypes').all() as { snapshot: string; id: number; json: string }[];
+  const update = db.prepare('UPDATE meta_archetypes SET json = ? WHERE snapshot = ? AND id = ?');
+  let tagged = 0;
+  db.transaction(() => {
+    for (const r of rows) {
+      const a = JSON.parse(r.json) as MetaArchetype;
+      const deck = { id: null, name: a.name, format: 'ranked', cards: a.sample.map((defId) => ({ defId, locked: false })), themes: [], buildMode: 'tuned' as const };
+      const planId = detectPlans(deck, { db: cardDb, owned: null }).primary?.planId ?? null;
+      if (planId) tagged++;
+      update.run(JSON.stringify({ ...a, planId }), r.snapshot, r.id);
+    }
+  })();
+  return { total: rows.length, tagged };
 }

@@ -46,6 +46,20 @@ describe('features sync step', () => {
     expect(() => syncFeatures(openDb(':memory:'), () => undefined, { root: ROOT })).toThrow(/no released cards/);
   });
 
+  it('tags stored meta archetypes with the primary plan of their sample list', () => {
+    const tdb = openDb(':memory:');
+    storeCards(tdb, fixtureRows(), fixtureNow());
+    const zombie = fixtureDb().meta().archetypes().find((a) => a.name === 'Zombie')!;
+    tdb.prepare('INSERT INTO meta_archetypes(snapshot, id, name, games, wins, json) VALUES (?, ?, ?, ?, ?, ?)')
+      .run('s1', zombie.id, zombie.name, zombie.games, zombie.wins, JSON.stringify({ ...zombie, planId: null }));
+    const out: string[] = [];
+    const s = syncFeatures(tdb, (l) => out.push(l), { now: fixtureNow(), root: ROOT });
+    expect(s.archetypes).toEqual({ total: 1, tagged: 1 });
+    const row = tdb.prepare('SELECT json FROM meta_archetypes WHERE id = ?').get(zombie.id) as { json: string };
+    expect((JSON.parse(row.json) as { planId: string | null }).planId).toBe('horde');
+    expect(out.some((l) => /^plans: 1 of 1 meta archetypes/.test(l))).toBe(true);
+  });
+
   it('orders the strongest edges by score', () => {
     const top = strongest(fixtureDb().edges('Hulk'), 3);
     for (let i = 1; i < top.length; i++) expect(top[i - 1]!.score).toBeGreaterThanOrEqual(top[i]!.score);
