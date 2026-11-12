@@ -2,7 +2,7 @@
 
 This file is the single place a new session reads to continue the build if the previous one was cut off. Update it at every stage boundary, in the same commit as the stage's work.
 
-Last updated: 2026-11-12. Repo created; research (Stage 0) running.
+Last updated: 2026-11-12. Research written, design and plan committed. Fact-check pass and Stage 2 (plan Tasks 1-2) running.
 
 ## Owner's decisions (do not re-ask)
 
@@ -21,12 +21,12 @@ Last updated: 2026-11-12. Repo created; research (Stage 0) running.
 
 | # | Stage | State |
 |---|---|---|
-| 0 | Research (5 topics) with one fact-check pass, files in `docs/research/` | **in progress** |
-| 1 | Design doc and implementation plan with the types contract | not started |
-| 2 | Foundation and data: scaffold, sync (cards, images, meta), fixtures | not started |
-| 3 | Engine, adversarial reviewer after it | not started |
-| 4 | API and UI | not started |
-| 5 | End-to-end tests | not started |
+| 0 | Research (5 topics) with one fact-check pass, files in `docs/research/` | research done; fact-check **in progress** (a file is verified when it ends with a Verification log) |
+| 1 | Design doc `docs/superpowers/specs/2026-11-12-snap-forge-design.md` and plan `docs/superpowers/plans/2026-11-12-snap-forge.md` | done |
+| 2 | Foundation and data: plan Tasks 1-2 | **in progress** |
+| 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | not started |
+| 4 | API and UI: plan Tasks 10-11 | not started |
+| 5 | End-to-end tests and calibration: plan Task 12 | not started |
 | 6 | Final review by driving the real UI and looking at screenshots | not started |
 
 ## Stage 0 detail
@@ -43,4 +43,11 @@ Expected files in `docs/research/`; a file is verified when it ends with a `## V
 
 ## Resume
 
-Read the plan (once it exists), run `git log --oneline | head -20` to see which task commits exist, and start at the first task without one.
+Read the plan, run `git log --oneline | head -20` to see which task commits exist, and start at the first task without one.
+
+## Known facts that shaped the plan
+
+- Card data, images and meta all come from Untapped's anonymous JSON (`data-sources.md`, `meta-sources.md`). Marvel Snap Zone's API is disallowed by its robots.txt and is not used.
+- Collection sync by Snap ID alone is not possible; no site exposes a collection without a login, and the game has no macOS client with local files. The app uses one import box (state file, pasted list, deck codes) plus per-series toggles.
+- The research parser reads 96.5% of cards at token level but had the effect target wrong on 15% in a hand-check; plan Task 4 must reach 95% on a hand-verified audit fixture before the engine builds on it.
+- The current short deck-code format is implemented from a community library and tested by round trip, not yet against a code copied from the game.
