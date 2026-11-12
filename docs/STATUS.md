@@ -2,7 +2,7 @@
 
 This file is the single place a new session reads to continue the build if the previous one was cut off. Update it at every stage boundary, in the same commit as the stage's work.
 
-Last updated: 2026-11-12. Research written, design and plan committed. Fact-check pass and Stage 2 (plan Tasks 1-2) running.
+Last updated: 2026-11-12. Research written, design and plan committed. Research verified. Stage 2 (plan Tasks 1-2) running.
 
 ## Owner's decisions (do not re-ask)
 
@@ -21,7 +21,7 @@ Last updated: 2026-11-12. Research written, design and plan committed. Fact-chec
 
 | # | Stage | State |
 |---|---|---|
-| 0 | Research (5 topics) with one fact-check pass, files in `docs/research/` | research done; fact-check **in progress** (a file is verified when it ends with a Verification log) |
+| 0 | Research (5 topics) with one fact-check pass, files in `docs/research/` | done; all five files carry a verification log |
 | 1 | Design doc `docs/superpowers/specs/2026-11-12-snap-forge-design.md` and plan `docs/superpowers/plans/2026-11-12-snap-forge.md` | done |
 | 2 | Foundation and data: plan Tasks 1-2 | **in progress** |
 | 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | not started |
@@ -51,3 +51,6 @@ Read the plan, run `git log --oneline | head -20` to see which task commits exis
 - Collection sync by Snap ID alone is not possible; no site exposes a collection without a login, and the game has no macOS client with local files. The app uses one import box (state file, pasted list, deck codes) plus per-series toggles.
 - The research parser reads 96.5% of cards at token level but had the effect target wrong on 15% in a hand-check; plan Task 4 must reach 95% on a hand-verified audit fixture before the engine builds on it.
 - The current short deck-code format is implemented from a community library and tested by round trip, not yet against a code copied from the game.
+- Untapped's card text omits dynamic numbers in at least 24 released rows; `sync-data/card-text-fixes.json` supplies the reviewed full text (plan Task 2).
+- Untapped's parent company terms forbid scraping without written permission and allow personal, non-commercial use (wording in `data-sources.md` and `meta-sources.md`). The owner accepted scraping for a local personal tool; sync stays slow, low-volume and manual. Revisit before publishing the repo.
+- Still unconfirmed: official wording for slot count, tie-break and priority; ban lists of every limited-time mode except the Sanctum Showdown lists on file.
