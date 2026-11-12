@@ -6,12 +6,22 @@ cited page is marked **HEURISTIC**.
 
 ## 0. Data and how to reproduce
 
+> **Verification note (2026-11-12).** The project's pool is the **Untapped rule: 511 cards**
+> (`collectible === true && series > 0 && min(seriesStartTimestamps) <= now`, see `data-sources.md` 1.1). The build
+> will not use the Marvel Snap Zone `getinfo` endpoint (its robots.txt disallows it). Every count in this file was
+> measured on the 506-card Marvel Snap Zone pool below and is kept as measured; treat counts as "of 506". The 506 are
+> a strict subset of the 511. Missing from it: **Arthur Pendragon, Mordred, Vampire America Chavez, Zombie Nova**
+> (`released` with `source: None` in that source) and **Lancelot** (`unreleased` there). All five are released,
+> collectible cards. Mephisto and Toad are correctly excluded (non-collectible, series 0 in Untapped). The source's
+> ability text is also empty for 9 cards that do have text, which changes the no-ability class from 16 to 7 (see 1.2).
+> `parse_cards.py` was re-run on the 511 pool; results are in 2.1.
+
 | Item | Value |
 |---|---|
 | Card source | `GET https://marvelsnapzone.com/getinfo/?searchtype=cards&searchcardstype=true` (accessed 2026-11-12, 748 records) |
 | Pool rule | `status == "released"` and `source != "None"` (has a Series / starter / collection-level source) |
 | Pool size | **506 cards** (490 with ability text, 16 with none). Cost spread: 0:2, 1:70, 2:124, 3:128, 4:81, 5:54, 6:39, 7:6, 8:2 |
-| Left out | 64 released cards with no source (Champions, team-mode variants, event cards such as Mephisto, Mordred, Toad) and 178 "unreleased" records, which in this source also hold every token and skill (Rock, Demon, Mjolnir, Widow's Bite, ...) |
+| Left out | 64 released cards with no source (Champions, team-mode variants, non-collectible cards such as Mephisto and Toad, and, wrongly, the four real cards Arthur Pendragon, Mordred, Vampire America Chavez, Zombie Nova) and 178 "unreleased" records (wrongly including Lancelot), which in this source also hold every token and skill (Rock, Demon, Mjolnir, Widow's Bite, ...) |
 | Raw files | `docs/research/raw/mechanics/` (gitignored): `cards_msz.json`, `cards.json` (pool), `tokens.json` (25 non-pool cards named in pool text), fetched pages as `.html`/`.txt` |
 | Scripts | `docs/research/analysis/mechanics/`: `build_pool.py`, `parse_cards.py`, `axes_edges.py`, `make_overrides.py` (Python 3 stdlib) |
 | Outputs | `docs/research/analysis/mechanics/out/`: `traits.json`, `coverage.json`, `axes.json`, `axes_examples.json`, `edges.json`, `edges_summary.json`, `overrides_proposed.json`, `precision_sample_v1.txt`, `precision_sample_v2.txt` |
@@ -49,11 +59,11 @@ and has no primary definition behind it yet.
 |---|---|---|---|
 | On Reveal | "Ability triggers when card is flipped on the board." Cards are revealed when they go from face down to face up. | S8 (community) | 240 |
 | Ongoing | "Continuous effects on the battlefield and may even be dynamic, changing its values depending on the condition." | S8 (community) | 74 |
-| Activate | card text only. A once-used ability: Jocasta activates other cards "without using up their Activate abilities"; H.E.R.B.I.E. swaps abilities "until one is used". | S1 | 33 |
+| Activate | Official (launch post, 2024, https://marvelsnap.com/our-first-brand-new-ability-activate/): "a new Ability that lets the player decide when the Card's text will trigger"; "Activate abilities cannot be triggered until the turn after they are played"; "Each ability can only be used once per game!"; it costs nothing. Card text agrees on once-only: Jocasta activates other cards "without using up their Activate abilities"; H.E.R.B.I.E. swaps abilities "until one is used". The post is from 2024: re-check the "turn after" timing against current card text before the engine relies on it. | official post, S1 | 33 |
 | End of Turn | card text only. Fires each turn end; some work from hand ("if in hand or in play": Red Hulk, Galactus First Steps; Black Cat discards itself from hand; Makkari runs from hand). | S1 | 31 |
 | Start of Turn | card text only (Mad Thinker: "Start of Turn (after drawing)"). | S1 | 8 |
 | Game Start | card text only. Deck or hand changes before turn 1 (Thanos, Agamotto, Arishem, Kang, Agatha, Zombie Galacti, Shang-Chi Master of the Rings, Emperor Hulkling, High Evolutionary, Uatu, Dormammu, Sinister Six, Thanos Fractured Frontier). | S1 | 13 |
-| When Destroyed | card text only. Variants "When Discarded or Destroyed" (Wolverine, X-23, Marrow) and "On Reveal and When Destroyed" (mode card Zombie Nova, not in pool). | S1 | 13 |
+| When Destroyed | card text only. Variants "When Discarded or Destroyed" (Wolverine, X-23, Marrow) and "On Reveal and When Destroyed" (Zombie Nova: a released collectible card, in the 511 pool, missing from the 506). | S1 | 13 |
 | When Discarded | card text only. | S1 | 11 |
 | Objective | "A new keyword" introduced with the X-Men: Origins of Apocalypse season; you are "working toward something" and can "play an Objective card before you complete it" (S5). Datamine wording: "Post end of turn, the card will check for completion of the objectives, if so, the effect triggers once." (S7, not official). Text shape: `Objective: <requirement> -> <reward>. (progress/target)`. | S5, S7 | 12 |
 | Quickdraw | "These effects are active the first turn you draw them. (Next turn if cards are already revealing.)" | S3 (official) | 4 (+ Thanos Fractured Frontier grants it to all your cards) |
@@ -71,18 +81,18 @@ and has no primary definition behind it yet.
 | Move | card text only; S8: "Cards can move from one location to another". | S1, S8 | 28 move effects |
 | Return to hand (bounce) | card text only (Beast, Falcon, Toxin; self: Kitty Pryde, Boomerang, Deadpool, Headpool, Sabretooth). No keyword. | S1 | 8 |
 | Merge | card text only: "merge this into it" (Agony), "Merge cards from your deck into this" (Blob). Trigger "When this merges" exists (Man-Spider, Peni Parker, Strange Supreme). | S1 | 9 |
-| Banish | card text only: removal that is neither destroy nor discard (Kraglin, Mole Man, Yondu, Adamantium Infusion). No pool card pays off for banishing. | S1 | 4 |
+| Banish | Official (patch notes 2025-03-04): "a new term and zone for cards that are gone for good: unlike destroyed and discarded cards, they won't be hopping back into the match"; "nothing that cares about discarded or destroyed cards will look at banished ones". All skills are banished after resolving. In card text: Kraglin, Mole Man, Yondu, Adamantium Infusion. No pool card pays off for banishing. | official, S1 | 4 |
 | Resurrect / Revive / Regenerate / "Bring back" / "Put this back" | card text only. Four wordings for returning a destroyed or discarded card; the parser folds them into `resurrect` with a `source` (destroyed / discarded / both). | S1 | 19 effects |
 | Created | card text only: cards not in the starting deck ("Your created cards cost 1 less", "created in your hand", "enemy created card"). | S1 | 10 |
-| Skill | card text only: Nicholas Scratch "After you play a skill", Scarlet Witch Queen of Chaos "Add an EXTREMELY random skill". S6 names "Champion Skill" cards. **The data source has no type flag for skills** (every record is `Character`). | S1, S6 | 2 |
-| front row / back row | card text only (6 and 2 cards). Not defined in any fetched page. | S1 | 8 |
+| Skill | A card type, not a keyword. Official (patch notes 2025-03-04, https://marvelsnap.com/patch-notes-march-4-2025/): "Skills don't have Power, and are banished (gone forever) after taking effect"; banished "After their own On Reveal effects, but before any cards or locations that take effect after a card is played. Basically other cards will see them as played cards, but they won't remain in play". Collectible skills **go in decks and count toward the 12** (11 are in the 511 pool; 1,285 of 4,763 Untapped meta lists hold one; see `rules-and-formats.md` 1.1). Cards that name skills: Nicholas Scratch "After you play a skill", Scarlet Witch Queen of Chaos "Add an EXTREMELY random skill". Marvel Snap Zone has no type flag (every record is `Character`); **the Untapped dump has `isSkill`** (61 rows) and writes skill power as 0. | official, Untapped | 2 name skills; 11 skills in the 511 pool |
+| front row / back row | Each side of a location has 4 spots in two rows of two; the front row is the first and second spots, the back row the third and fourth (Marvel Snap Zone, 2025-04-01: "The back row refers to the third and fourth spots on a location"). Consistent with card text: En Sabah Nur's "full front row at each location" counts to 6; Prodigy "If this is in the back row, copy the text of the card in front of it". Authority: `rules-and-formats.md` R10. No official definition found. | S1, community | 8 |
 | Max Energy / Energy next turn / bonus Energy / unspent Energy | card text only. Three different things in text: permanent `+1 Max Energy` (7 cards), `+1 Energy next turn` (one-shot), and "bonus Energy" (3 cards: Entropic Havok, Jim Hammond, Quicksand). 10 cards read "unspent Energy". | S1 | see text |
 | Steal Power | card text only ("Steal 1 Power from ..."); Vampire Deacon Frost counts "cards [that] have stolen Power". | S1 | 10 |
 | Switch sides | card text only (Green Goblin, Hobgoblin, Titania, Viper, Annihilus). | S1 | 5 |
 | Transform / Become a copy / Unlock the potential | card text only. | S1 | 7 |
 | Recruit / Pull | card text only (Baron Zemo recruits from the opponent's deck; Doctor Octopus pulls from the opponent's hand). | S1 | 2 |
 | Copy text / steal text / remove text | card text only. "text" and "abilities" are both used ("Remove the text from", "Remove the abilities from"). | S1 | 16 / 3 / 10 |
-| No ability | 16 cards with empty text: Abomination, Batroc the Leaper, Black Knight, Cyclops, Hulk, M'Baku, Martyr, Misty Knight, Nebula, Negasonic Teenage Warhead, Scream, Shocker, The Collector, The Thing, Wasp, Weapon X Wolverine. | S1 | 16 |
+| No ability | **7 cards** in the Untapped dump: Abomination, Cyclops, Hulk, Misty Knight, Shocker, The Thing, Wasp. Corrected 2026-11-12: the Marvel Snap Zone data showed 16 because its ability field is empty for 9 cards that have text (Batroc the Leaper, Black Knight, M'Baku, Martyr, Nebula, Negasonic Teenage Warhead, Scream, The Collector, Weapon X Wolverine; e.g. The Collector "When a card enters your hand from anywhere (except your deck), +1 Power.", also printed in the official 2026-09-10 balance post). Every "16" below (1.4, the `no_ability` axis, 2.1 pool percentages, edges that use the class) inherits this error. | Untapped | 7 |
 
 Not in the released pool but visible in the data: S7's summary of an October 2026 datamine mentions
 "Frontline/Backline" keywords as not final. Treat as unconfirmed.
@@ -117,12 +127,12 @@ Not in the released pool but visible in the data: S7's summary of an October 202
 | On Reveal copying | Absorbing Man "If the last card you played has an On Reveal, copy its text. (if able)"; Astral Projection (from hand); Chameleon (revealed this turn) | depends on play order ("last card you played") |
 | Ongoing repetition | Onslaught "Your other Ongoing effects here apply an additional time"; Moonstone (3-Cost or less, here); Mystique copies an Ongoing text | location-scoped; Onslaught says "other" |
 | Counters to the above | Cosmo stops On Reveal "here" for everyone; Enchantress removes "all Ongoing cards here" (both sides); Ghost removes End of Turn "here"; Alioth / Cosmic Ghost Rider / Red Guardian remove enemy text only | own Cosmo / Enchantress / Ghost hit own cards at that location |
-| "No abilities" as a resource | Patriot "+2 Power" to cards with no abilities; High Evolutionary "Unlock the potential"; Selene Horseman of Famine objective "3 cards with no abilities in play" | the 16 no-ability cards are enablers, not filler |
+| "No abilities" as a resource | Patriot "+2 Power" to cards with no abilities; High Evolutionary "Unlock the potential"; Selene Horseman of Famine objective "3 cards with no abilities in play" | the 7 no-ability cards (see 1.2) are enablers, not filler |
 | Cost clamps | "(maximum 6)" on Iceman, Sandman, Gorgon; "(minimum 1)" on Quinjet, Sera, Ravonna Renslayer; Wave "cost a maximum of 4"; Mobius M. Mobius blocks increases for you and reductions for the opponent | reducers with "(minimum 1)" do nothing for 1-Cost cards |
 | Play restrictions | Crossbones (only where winning), Cull Obsidian (only where you have a 1-Cost card), Giganto (left location only), Ikari (only where an enemy is afflicted), Sentry (not the right location), Ebony Maw (not after turn 3), The Infinaut (not if you played a card last turn) | each needs a deck-level check that the condition is reachable |
 | Play-count limits | Electro "You can only play 1 card a turn"; Jean Grey "Players must play their first card here each turn"; Ebony Maw "You can't play cards here"; Goose "Nobody can play cards that cost 4 or more here"; Storm; Professor X; Stardust "Cards can't be added to locations except by playing or moving them" | conflicts with multi-play payoffs and with add-to-location effects |
 | Bypass | Jeff the Baby Land Shark "Nothing can stop you from moving or playing this to any location"; War Machine "Nothing can stop you from playing cards anywhere" | answers to the row above |
-| Full-side conditions | Ant Man, Human Torch First Steps, The Thing First Steps ("if your side here is full"), Dazzler, Elsa Bloodstone, Mojo ("both sides"), Lizard ("if your opponent has 4 cards here") | Lizard's text implies a side holds 4 cards; the capacity rule itself was not fetched (see open questions) |
+| Full-side conditions | Ant Man, Human Torch First Steps, The Thing First Steps ("if your side here is full"), Dazzler, Elsa Bloodstone, Mojo ("both sides"), Lizard ("if your opponent has 4 cards here") | a side holds 4 cards (Lizard's text; settled in `rules-and-formats.md` R10). Skills do not occupy a spot after resolving |
 | Alone conditions | Namor, Orka ("your only card here"), Namora, Namorita, Galactus, Warpath ("any of your locations are empty") | conflict with cards that add bodies to other locations |
 | Turn references | Daredevil (turn 5), Arishem (turn 3), Domino (turn 2), Magik (not after turn 5), Baron Mordo (until turn 6), Agatha (even turns), Starhawk (odd turn) | the turn count is referenced up to 6; game length rule not fetched here |
 | Hand effects that work from hand | "(if in hand or in play)": Clea, Sub-Mariner, Red Hulk, Galactus First Steps; "(if in hand, in deck, or in play)": Sebastian Shaw | hand buffs count as Empowered triggers for these |
@@ -165,6 +175,16 @@ increase), Jane Foster Fractured Frontier, Zombie Giant-Man.
 
 Cards with text but no effect at all (6): Bruce Banner, Dormammu, H.E.R.B.I.E., Nico Minoru, Punisher War
 Machine, Thanos Fractured Frontier.
+
+**Re-run on the Untapped-rule pool (verification, 2026-11-12).** `parse_cards.py` unchanged, input swapped for the
+511 Untapped cards (markup stripped, `<sprite=0>` mapped to the Objective arrow, flavour-only text treated as empty;
+output written outside the repo): 504 cards with text, 7 without; cards with at least one trait 98.4% of cards with
+text; **fully parsed 93.5%** of cards with text and of the pool; 596 clauses, 93.8% fully parsed, 96.0% with an
+effect. The drop from 96.5% has two causes, neither a parser regression: the 9 cards the 506 pool wrongly had as
+text-less are one-off sentences (Batroc, Black Knight, M'Baku, Martyr, Nebula, The Collector, Weapon X Wolverine
+fail), and the Untapped text drops dynamic numbers ("cost  from your deck", "It costs .", see `data-sources.md`
+1.1), which breaks about 9 more sentences. 37 distinct unparsed sentences on this pool against 22 before. `axes_edges.py`
+and `make_overrides.py` were **not** re-run on the 511 pool, so sections 3 to 5 are still 506-pool numbers.
 
 ### 2.2 Unparsed sentences (22, each occurs once)
 
@@ -250,7 +270,9 @@ denial 1, enemy destroy 9, enemy discard 3, enemy cost increase 3, enemy displac
 Frontier, Lizard, Maximus, Red Skull, Starbrand, Tombstone, Typhoid Mary, Yellowjacket).
 
 Axes found to be payoff-less in the pool: **banish** (4 enablers, no card rewards banishing) and **skills**
-(one enabler, one payoff, and the skill type is not in the data).
+(one enabler, one payoff by text). Corrected 2026-11-12: the skill type **is** in the Untapped data (`isSkill`), so
+the 11 deckable skills are enablers for Nicholas Scratch and the axis is not payoff-less; it was not rebuilt here.
+The `no_ability` axis lists 16 enablers; only 7 are real (1.2).
 
 ## 4. Pair-interaction rules
 
@@ -430,17 +452,48 @@ and Bear auroras, Sentinel copies, Illusion, Tiger, Void, Limbo.
 
 ## 6. Open questions
 
-1. **Pool boundary.** Is `released and source != None` the right "collectible" rule? It keeps cards like
-   "Thanos Fractured Frontier" and "Doctor Octopus Fractured Frontier" as separate Series 4/5 cards and drops
-   Mephisto, Mordred, Toad, Arthur Pendragon (released, no source). Needs a cross-check against a second source.
-2. **Skill typing.** The source types every record as `Character`. Which generated cards are skills (Ancient
-   Arcana, Incantation, The Grand Design, Infinity Shots?) cannot be told from this data.
-3. **Official definitions still missing** for Activate, Game Start, End of Turn, Start of Turn, Banish, Merge,
-   Afflict, created, front row / back row, bonus Energy, Resurrect vs Revive vs Regenerate (same thing or
-   not?). No official glossary page was found; the in-game keyword tooltips would be the primary source.
+1. **Pool boundary. Settled 2026-11-12:** no. The rule is the Untapped one (511 cards, section 0 note). The
+   "Fractured Frontier" cards are separate collectible cards in Untapped too (own `defId`, series 7/8), so keeping
+   them was right. Dropping Mordred and Arthur Pendragon was wrong (both released and collectible); dropping
+   Mephisto and Toad was right.
+2. **Skill typing. Settled 2026-11-12:** the Untapped dump has `isSkill` on 61 rows (for example The Grand Design
+   and Tao Mandala are skills; Excalibur and Winter Soldier are not).
+3. **Official definitions still missing** for Game Start, End of Turn, Start of Turn, Merge, Afflict, created,
+   front row / back row (community definition only), bonus Energy, Resurrect vs Revive vs Regenerate (same thing
+   or not?). Activate, Banish and Skill got official text on 2026-11-12 (1.1, 1.2). No official glossary page was found; the in-game keyword tooltips would be the primary source.
 4. **Objective timing** rests on a community datamine sentence (S7), not an official one.
 5. **Board rules used implicitly**: cards per side of a location and game length are implied by card text
    (Lizard, turn references) but were not fetched here; the rules researcher's file should be the authority.
+   Settled 2026-11-12 in `rules-and-formats.md`: 4 per side (R10), 6 turns unless text changes it (R1; Limbo:
+   "There is a turn 7 this game.").
 6. **Side ambiguity** in "Add X to each (other) location" (Debrii, Shanna, Luna Snow says "each side").
 7. **Edge scoring** is uncalibrated: the fan-out weighting is a heuristic and 70% strict precision is too low
    for creative suggestions without filtering by rule and strength.
+
+## Verification log (2026-11-12)
+
+Independent pass against the Untapped dump (`raw/cards/cards.json`, re-fetched: build 58.15.3, unchanged), local
+copies of the cited official posts, and four live pages. `marvelsnapzone.com/getinfo` was not requested.
+
+| Claim | Checked against | Verdict |
+|---|---|---|
+| Pool = 506 by `status == released and source != None` | Set difference with the Untapped-rule pool (511) | Corrected: project pool is 511; the 5 missing cards and why are in the section 0 note. 0 cards are in the 506 and not in the 511 |
+| "Drops Mephisto, Mordred, Toad" as mode/event cards | Untapped rows | Corrected: Mephisto and Toad are non-collectible; Mordred (3/4, series 10, from 2026-11-05) is a real card |
+| Zombie Nova is a "mode card, not in pool" | Untapped: `collectible`, series 10, from 2026-10-14; in 67+ meta lists | Corrected |
+| "Fractured Frontier" cards are separate cards | Untapped: own `defId`, collectible, series 7/8 | Confirmed |
+| 16 no-ability cards | Untapped text; official 2026-09-10 post for The Collector | Corrected: 7. Downstream counts flagged, not rebuilt |
+| Cost and power of the 506 shared cards | Untapped dump | Confirmed, 0 differences |
+| Section 5 overrides table (46 cards: cost, power, text) | Untapped dump | Confirmed 46 of 46 on cost and power; text equal on 42, and the 4 differences (Annihilus, Sinister Six, En Sabah Nur, Vampire Deacon Frost) are a missing "0" in the Untapped text, so this file's text is the right one. Mismatch rate 0% |
+| 42 quoted card texts in sections 1 to 4 (glossary examples, rule interactions, axis examples) | Untapped dump | Confirmed 41 of 42; the one difference (Jane Foster Mighty Thor "cost 0") is again the dropped "0" in Untapped. Mismatch rate 0% for this file |
+| On Reveal, Ongoing definitions (S8) | Local copy of the guide: both quoted sentences present | Confirmed (community source; no official definition found) |
+| Activate | Official launch post (fetched) | Corrected: official definition added (player-chosen timing, not before the turn after it is played, once per game) |
+| Game Start, End of Turn, Start of Turn | no official definition found in the posts fetched | Could not confirm beyond card text |
+| Horde | Local copy of S4: "Horde: Give your Zombie Horde that much Power", "it only goes up" | Confirmed (official) |
+| Objective | Local copy of S5: both quotes present. Timing sentence is from the S7 datamine | Confirmed (official) for the definition; timing could not be confirmed officially |
+| Quickdraw | Local copy of S3: "These effects are active the first turn you draw them. (Next turn if cards are already revealing.)" | Confirmed (official) |
+| Empowered, Moveable | Local copy of S2 (2026-05-19 patch notes): both `[New Keyword]` lines present as quoted | Confirmed (official) |
+| Skills: definition; in decks; count toward 12 | Official 2025-03-04 patch notes (fetched); `isSkill`; Untapped meta lists | Corrected: was "card text only, no type flag". Skills are a card type with no Power, banished after resolving; the 11 collectible ones are deck cards that count toward the 12 |
+| front row / back row | Card text; Marvel Snap Zone Captain Carter guide (fetched) | Corrected: definition added, community level |
+| Keyword counts on the 511 pool (plain text search, not the parser) | Untapped dump | For reference: On Reveal 253, Ongoing 83, Activate 36, End of Turn 35, Start of Turn 8, Game Start 13, When Destroyed 11, When Discarded 11, Objective 12, Quickdraw 5, Horde 7, Empowered 4, Moveable 19. The table counts above are parser classes on 506 cards and differ |
+| Parser coverage 96.5% | Re-run on the 511 pool | Corrected for the build pool: 93.5% fully parsed (2.1) |
+| Axes, edges, precision samples (sections 3, 4) | not re-run on the 511 pool | Could not confirm; still 506-pool numbers, and affected by the no-ability and skill corrections |

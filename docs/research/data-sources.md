@@ -23,6 +23,7 @@ Snap-ID-only collection sync is **not possible**: no site exposes a collection b
 - URL: `https://snapjson.untapped.gg/v2/latest/en/cards.json`. HTTP 200, `application/json`, 378,035 bytes. `latest` redirects to the game build, today `https://snapjson.untapped.gg/v2/58.15.3/en/cards.json`, so the build number is readable from the final URL.
 - Auth and headers: none. The generic User-Agent works.
 - robots.txt: `snap.untapped.gg/robots.txt` is `User-agent: * / Allow: /`. `snapjson.untapped.gg/robots.txt` returns 404 (no rules).
+- Terms of service (read 2026-11-12): the site footer links `https://hearthsim.net/legal/terms-of-service.html`. robots.txt allowing everything is not the whole picture. Exact wording: the licence is "solely for your personal, non-commercial use"; "You agree not to (and not to attempt to) ... (ii) access any and all non API based services in a manner that sends more request messages to the Service's servers in a given period of time than a human can reasonably produce in the same period by using a conventional on-line web browser"; and "You agree that you shall not modify, copy, distribute, frame, reproduce, republish, download, scrape, display, post, transmit, or sell in any form or by any means, in whole or in part, or otherwise exploit the Service without our express prior written permission." Nothing names "automated" or "bots" beyond these two sentences. Reading: slow, personal, non-redistributing use fits the rate sentence, but the "download, scrape ... without our express prior written permission" sentence does not carve out personal use. **The owner must decide or ask HearthSim; this file cannot settle it.**
 - This is the file Untapped's own site loads (seen in its production JS, `apiV2="https://snapjson.untapped.gg/v2"`). Sibling files on the same base: `locations.json`, `artVariants.json` (5,265 variant rows, 1.06 MB), `limited-time-game-modes.json` (not fetched).
 - Rows: **791**. Saved to `docs/research/raw/cards/cards.json` (gitignored).
 
@@ -46,6 +47,8 @@ Fields (count of rows that have the field):
 
 `series` number to series, measured by joining all rows against DotGG's `CardSeriesDefId`: 0 none, 1 Starter, 2 Series0 (collection level 1-14), 3 Recruit, 4 Series 1, 5 Series 2, 6 Series 3, 7 Series 4, 8 Series 5, 9 SeasonPass, 10 LimitedTimeEvent. Counts today: 280, 13, 8, 5, 46, 25, 125, 91, 194, 1, 3.
 
+Trap found in verification (2026-11-12): `description` **drops some dynamic numbers**. At least 24 of the 511 released rows have a hole where the game shows a value, mostly a literal `0`: `JaneFoster` "Draw all cards that cost  from your deck", `Swarm` "copies of this that cost  to your hand", `EnSabahNur` "(/6)", `ShouLao` "(+)", and `IronPatriot` "a random -Cost or more card" (the game text says 4-Cost). Do not treat the text as complete: check `attributes.data` for the value, and keep these rows in a reviewed override list. Whether DotGG's `description` carries the numbers was not checked; Marvel Snap Zone's text and the official posts do.
+
 Not in this source: keyword tags, a token flag, release status as a word, last-changed date, change history. Tags can be read from the bold prefix of `description` (`<b>On Reveal:</b>`), or taken from DotGG.
 
 Classification rule (measured counts for 2026-11-12):
@@ -63,7 +66,7 @@ Classification rule (measured counts for 2026-11-12):
 
 Freshness: contains every card released this month: `ArthurPendragon` and `CaptainBritain` and `MerlinOfAvalon` (2026-11-03), `Mordred` (2026-11-05), `Lancelot` (2026-11-10).
 
-Cross-check: the 511 released set equals DotGG's set exactly (500 characters plus 11 skills with a started series). Marvel Snap Zone has 506 of them marked released with a series and lags on the other 5.
+Cross-check: the 511 released set equals DotGG's set exactly (500 characters plus 11 skills with a started series). Marvel Snap Zone has 506 of them marked released with a series and lags on the other 5: Arthur Pendragon, Mordred, Vampire America Chavez and Zombie Nova are `released` with `source: None` there, and Lancelot is still `unreleased`. No card is in the 506 set and outside the 511 set. **511 by the rule above is the project's pool**; the 506 in `mechanics.md` and the 570 in `deck-theory-and-creativity.md` are Marvel Snap Zone counts (570 = every `status: released` row, including 64 mode copies and the 5 cards above) and are superseded.
 
 Full sample row:
 
@@ -85,7 +88,7 @@ Full sample row:
 - URL: `https://marvelsnapzone.com/getinfo/?searchtype=cards&searchcardstype=true`. HTTP 200, 3,122,452 bytes, shape `{"success":{"cards":[...]}}`, **748** rows, no auth.
 - robots.txt: since 2026-08-28 it has `User-agent: * / Disallow: /getinfo/` (also `/msz-api/` and `/pro/`), and blocks AI crawlers by name. The endpoint still answers, but the site asks crawlers not to use it. This is the reason it is not recommended.
 - Fields: `cid`, `name`, `carddefid`, `type`, `cost`, `power`, `ability` (HTML), `flavor`, `art`, `url`, `status` (`released` 570, `unreleased` 178), `source` and `source_slug` (`Series 1`..`Series 5`, `Starter Card`, `Recruit Season`, `Collection Level 1-14`, `None`), `tags` (`{tag_id, tag, tag_slug}`; only 10 distinct tags), `variants`, artist fields. `rarity` and `difficulty` are empty for cards. No release date, no token flag.
-- Quality: `status: released` with `source: None` holds 64 rows that mix mode copies with four real cards released in the last weeks; `Lancelot` (released 2026-11-10) is still `unreleased`. Three names contain markup.
+- Quality: `status: released` with `source: None` holds 64 rows that mix mode copies with four real cards released in the last weeks; `Lancelot` (released 2026-11-10) is still `unreleased`. Three names contain markup. Its `ability` is empty for 9 released cards that have text in the game data and in official posts (Batroc the Leaper, Black Knight, M'Baku, Martyr, Nebula, Negasonic Teenage Warhead, Scream, The Collector, Weapon X Wolverine), so it overstates the "no ability" set (16 there, 7 in Untapped).
 - A copy fetched by another researcher is at `raw/mechanics/cards_msz.json`.
 
 ### 1.4 Others
@@ -150,7 +153,8 @@ A short card code is the CardDefId with every lower-case `a e i o u y` removed, 
 - `github.com/Mottelz/snapdeck` (pushed 2026-11-07) implements the same two formats with the same function and calls them "short" and "long"; its generated block uses the short one.
 - Verdict: the short format is the current one and the long format is still read and still written by a major live site in November 2026. Snap Forge should accept both on paste and offer both on copy, short first.
 - **Not verified**: which format the game client's own copy button emits today, and whether the client still accepts a pasted long code. No in-game test was possible. Untapped exporting long codes today suggests the client still takes them.
-- **Not verified with a live short code string**: every page that shows a code was unreachable. `marvelsnapzone.com/decks/*`, `snap.fan/decks/`, `marvelsnap.pro/decks/` and `noff.gg/marvel-snap/decks` all return 403 with a Cloudflare "Just a moment..." challenge, with the generic and with a browser-like User-Agent. The challenge was not worked around. Untapped's deck list pages return card lists without code strings.
+- **Verified with live short code strings (2026-11-12)**: the Marvel Snap Zone tier-list article `https://marvelsnapzone.com/marvel-snap-ranked-meta-tier-list-november-8-2026/` (200 with the generic User-Agent, not a disallowed path) carries 15 codes in `deck-sharecode" data-value="..."` attributes. All 15 are the short format with no prefix or suffix, each decodes through `deckcode.mjs` to 12 distinct released cards, and `encodeShort` reproduces all 15 byte for byte. Five of the 15 contain a skill card. These are codes a site publishes for pasting into the game; a code copied out of the game client itself has still not been seen.
+- Still unreachable: `marvelsnapzone.com/decks/*`, `snap.fan/decks/`, `marvelsnap.pro/decks/` and `noff.gg/marvel-snap/decks` return 403 with a Cloudflare "Just a moment..." challenge, with the generic and with a browser-like User-Agent. The challenge was not worked around. Untapped's deck list pages return card lists without code strings.
 
 ### 4.3 Script and proof
 
@@ -228,8 +232,31 @@ Store the result as a set of CardDefIds with the import date and source, and alw
 ## 7. Open questions
 
 1. Which format the game client copies today, and whether it still accepts long codes. One copy and one paste in the game answers it.
-2. A real short code string from a live deck page, to confirm there is no extra prefix or suffix inside the base64 beyond the comma list.
+2. Answered 2026-11-12 for site-published codes (15 live short codes, section 4.2). A code copied from the game client is still missing.
 3. The real 2026 shape of `CollectionState.json` and the location of the Snap ID in the state files (needs one Windows file).
 4. Whether Untapped's logged-in collection JSON is a practical export, and its shape.
 5. Whether the owner is comfortable with using `marvelsnapzone.com/getinfo/` at all given its robots.txt; nothing in the recommended path depends on it.
 6. Untapped's `artists[].type` and `<sprite=N>` meanings; and whether `render/crop` art is wanted for small thumbnails.
+7. Untapped / HearthSim terms of service (section 1.1): whether a local sync counts as "download, scrape" needing written permission. Owner decision.
+
+## Verification log (2026-11-12)
+
+Independent pass; one GET per endpoint with `User-Agent: SnapForge/0.1`.
+
+| Claim | Checked against | Verdict |
+|---|---|---|
+| Cards URL: 200, 378,035 bytes, 791 rows, redirects to build 58.15.3 | Live GET | Confirmed; identical to the local dump (0 rows differ in cost, power or text) |
+| Released collectible = 511 by `collectible === true && series > 0 && min(seriesStartTimestamps) <= now` | Recomputed on local and re-fetched dump | Confirmed. 512 `collectible` rows; the one excluded is `ElderDragonOfTheMoon` (series 0, 2026-11-17). 31 upcoming, 249 other |
+| 511 vs 506 (`mechanics.md`) vs 570 (`deck-theory-and-creativity.md`) | Set difference between the Untapped pool and `raw/mechanics/cards.json` | Settled: 511. The 5 extra cards and the reason are named in 1.1; the other two files were corrected |
+| Mephisto, Toad are not deckable | Untapped rows: `series: 0`, no `collectible`, no timestamps | Confirmed. Mordred is deckable (series 10, from 2026-11-05) |
+| Series counts 280, 13, 8, 5, 46, 25, 125, 91, 194, 1, 3 | Recount | Confirmed |
+| `isSkill` on 61 rows, 11 collectible and released | Recount | Confirmed |
+| Skills are ordinary deck cards | 1,285 of 4,763 Untapped meta lists hold a skill among 12 distinct ids | Confirmed (rule recorded in `rules-and-formats.md` 1.1) |
+| `description` is the ability text | Compared with Marvel Snap Zone text for the 506 shared cards and with official posts | Corrected: dynamic values are dropped in at least 24 released rows (trap added to 1.1). Cost and power agree on all 506 |
+| Locations URL: 200, 44,740 bytes, 230 rows, fields as listed | Live GET | Confirmed |
+| Image URL pattern: 200, `image/webp`, Hulk 51,570 bytes at 512 | Live GET | Confirmed |
+| `snap.untapped.gg/robots.txt` allows all | Live GET | Confirmed (`User-agent: *`, `Allow: /`, plus a sitemap line) |
+| Terms of service | `https://hearthsim.net/legal/terms-of-service.html`, live GET | Corrected: was unread; exact wording added to 1.1. Whether it permits this tool: could not confirm |
+| `deckcode.mjs --selftest` | Run locally | Confirmed: all checks print `ok`, exit 0 |
+| Short deck-code format against a real code | 15 live codes from the Marvel Snap Zone tier list of 2026-11-08 | Corrected: was "not verified"; now confirmed for site-published codes. In-game copy output: could not confirm |
+| DotGG endpoint, image host, GitHub repos, collection-import findings (sections 1.2, 1.4, 5) | not re-requested (budget) | Could not confirm in this pass |

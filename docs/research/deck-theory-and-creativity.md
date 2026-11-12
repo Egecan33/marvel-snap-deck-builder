@@ -6,6 +6,7 @@ How to read this file:
 
 - **Confirmed** means read from a live source on the access date. **Derived** means computed by a script in `docs/research/analysis/theory/` from confirmed inputs. **Heuristic** means a design choice of this file with no measurement behind it yet.
 - All card text is quoted from the Marvel Snap Zone card JSON (S3). Card text changes often: the engine must read text from synced data, never from this file.
+- **Verification note (2026-11-12).** The released pool is **511 cards** (Untapped rule, `data-sources.md` 1.1), not the 570 of S3: 570 counts every `status: released` row in S3, including 64 mode copies and non-collectible cards. The build will not use S3 (its robots.txt disallows the endpoint). Numbers below that depended on 570 were recomputed on the 511 pool and are marked. Every quoted card text, cost and power was re-checked against the Untapped dump (log at the end).
 - Keywords that appear in quoted text (Horde, skill, Objective, Quickdraw, Empowered, Activate, front row) are not explained here. Their rules belong to `mechanics.md` and `rules-and-formats.md`.
 
 ## Sources
@@ -38,7 +39,7 @@ Not found: a community benchmark for "how much power wins a location". Two searc
 | Win | more Power than the opponent at 2 of 3 locations | S1 |
 | Reveal order | the player currently leading reveals first (priority) | S1 |
 
-Open for `rules-and-formats.md`: (a) cards per location and the front-row rule that current text refers to; (b) the tie-break, where S1 says "biggest lead at their winning Location" and a PC Gamer search snippet says total power across locations; (c) the text of Limbo, the location Magik creates ("On Reveal: Replace this location with 'Limbo'. Doesn't work after turn 5.", S3).
+Settled on 2026-11-12 in `rules-and-formats.md` (R10, R12, R14): (a) 4 cards per side of a location, in two rows of two; the front row is the first two spots; skills leave the board after resolving. (b) Tie-break: with equal locations won, higher total Power across all three locations wins, which is the same outcome as S1's "biggest lead at their winning Location"; equal totals is a draw. Priority: more locations, then more total Power, then random. (c) Limbo, the location Magik creates ("On Reveal: Replace this location with 'Limbo'. Doesn't work after turn 5.", S3), reads "There is a turn 7 this game." (Untapped `locations.json`). Skill cards are ordinary deck cards and count toward the 12.
 
 ### 1.2 Draw maths (derived, exact)
 
@@ -109,7 +110,7 @@ Measured on the 15 lists of S2 (`meta_snapshot_stats.py`): mean cards per cost 1
 
 No community benchmark was found. What is measured:
 
-- Mean printed power of the 570 released cards by cost (S3): cost 1: 1.97, 2: 2.75, 3: 3.64, 4: 5.32, 5: 6.31, 6: 8.64. Playing one average card on curve every turn is 28.6 printed power for 21 energy, about 1.36 per energy. This is a floor reference, not a target: abilities are worth power.
+- Mean printed power by cost, recomputed 2026-11-12 on the 500 characters of the 511-card pool (the 11 skills have no Power and are left out): cost 1: 2.15, 2: 2.75, 3: 3.69, 4: 5.46, 5: 6.42, 6: 8.59. Playing one average card on curve every turn is 29.1 printed power for 21 energy, about 1.38 per energy. (The original figures on the 570 S3 rows were 1.97, 2.75, 3.64, 5.32, 6.31, 8.64; 28.6; 1.36.) This is a floor reference, not a target: abilities are worth power.
 - Sum of printed power of the 12 cards in the 15 S2 lists: 34 to 60, median 48. Lists with low printed power (Fantomex 34, Nimrolactus 35, Skilled Zombie Horde 37) score through abilities, so printed power alone cannot rate a deck.
 - S2 on one list: "Shou-Lao plus Sasquatch can be enough to win two locations on turn six" (printed power 8 and 11, plus Shou-Lao's buff).
 - S5 asks the right questions without numbers: what is the ideal power output and what is the low-roll output.
@@ -134,7 +135,7 @@ Each row is detectable from card traits (trait names are placeholders for `mecha
 | 10 | Discard scaling | Discards are fuel; payoffs count them or return | `discard_own` (M.O.D.O.K., Colleen Wing) -> `when_discarded` (Swarm, Apocalypse), `discard_count` (Morbius) | Hand disruption, cost increase; Cosmo on the outlets | Bullseye Discard, 56% / 0.75 |
 | 11 | Ongoing stacking | One lane's total is multiplied, then shared: Iron Man "Your total Power is doubled here.", Onslaught, The Living Tribunal "Split your total Power evenly among all locations." | `ongoing_multiplier` -> `ongoing_repeat`, `copy_ongoing` (Mystique) | Enchantress ("Remove the abilities from all Ongoing cards here."), Rogue, Echo, Super-Skrull, text removal | Ongoing Tribunal, 55.5% / 0.9 |
 | 12 | Extra energy | More than 21 energy over the game for bigger late turns | `max_energy_up` (Wiccan "+2 Max Energy" if all Energy was spent; Electro; Hope Summers) -> 5-6 drops | Missing the ramp card (75% cap), cost tax, tempo decks | Curved Wiccan, 59% / 0.6 |
-| 13 | Extra turn | Magik creates Limbo; decks plan a seventh turn (location text to confirm) | `extra_turn` -> late payoffs; 10 cards seen | Location replacement, decks that peak on turn 6 | Magik is in 3 of 15 lists |
+| 13 | Extra turn | Magik creates Limbo ("There is a turn 7 this game.", confirmed 2026-11-12); decks plan a seventh turn | `extra_turn` -> late payoffs; 10 cards seen | Location replacement, decks that peak on turn 6 | Magik is in 3 of 15 lists |
 | 14 | Move reallocation | Power is committed early and moved after the opponent commits | `mover`, `moveable` -> `on_move_payoff` (Human Torch, Dagger, Kraven) | Professor X ("Moving is the only way to add or remove a character from here." cuts both ways), Shadow King | none in S2 this week |
 | 15 | Lockdown | Win a lane early, then close it | `lane_lock` (Storm, Professor X, Goose) -> early power | Jeff the Baby Land Shark, move, added cards | no dedicated list in S2 |
 | 16 | Last-turn hidden power | Hold power off the board until turn 6 so it cannot be answered | `activate_burst` (Fantomex), `next_card_double` (Shuri), `unrevealed` (Invisible Woman) | Alioth, Cosmo on the lane, priority loss | Fantomex ("able to hide its points until the last turn", S2) |
@@ -191,7 +192,7 @@ Translation to Snap Forge: **novelty** = distance from the known meta corpus (L3
 
 ### 4.2 Calibration facts from the current meta (derived)
 
-From the 15 lists of S2: 132 distinct cards (23% of the 570 released); 99 of them appear in exactly one list; pairwise shared cards average 0.66 (67 of 105 pairs share nothing); each list's nearest neighbour shares 1 to 7 cards (1: 3 lists, 2: 4, 3: 1, 4: 1, 5: 4, 7: 2). Most-shared cards: Mobius M. Mobius (5 lists), Scarlet Witch Queen of Chaos, Thanos Fractured Frontier, Shadow King (4 each).
+From the 15 lists of S2: 132 distinct cards (26% of the 511 released; the original "23% of 570" used the S3 row count); 99 of them appear in exactly one list; pairwise shared cards average 0.66 (67 of 105 pairs share nothing); each list's nearest neighbour shares 1 to 7 cards (1: 3 lists, 2: 4, 3: 1, 4: 1, 5: 4, 7: 2). Most-shared cards: Mobius M. Mobius (5 lists), Scarlet Witch Queen of Chaos, Thanos Fractured Frontier, Shadow King (4 each).
 
 Two consequences. First, real meta lists are already far apart, so "distance to the nearest list" only means something against a large corpus (several hundred lists including variants); against 15 lists nearly everything looks novel. Second, for two 12-card decks Jaccard similarity is `o / (24 - o)` where o is the shared-card count, a monotone function of o, so the engine should show the overlap count ("shares 7 of 12 with 4-Cost Summons"), which a person can check.
 
@@ -249,7 +250,7 @@ Objective: maximise `F(D) = Novelty(D) + 2 * SynergySum(D)` over 12-card sets, s
 
 Search procedure, deterministic for a seed (seeded PRNG; candidates and neighbours iterated in card-id order; ties broken by card id):
 
-1. **Candidate pool.** The full space is C(570,12) = 2.2e24. Keep the seed cards plus the top 80 to 120 cards by (interaction with the seeds + rarity), after applying the constraint prompts of 4.6.
+1. **Candidate pool.** The full space is C(511,12) = 5.8e23 (corrected from C(570,12) = 2.2e24). Keep the seed cards plus the top 80 to 120 cards by (interaction with the seeds + rarity), after applying the constraint prompts of 4.6.
 2. **Greedy construction.** From the seeds (or from a sampled hidden-gem pair), add the card with the best marginal F minus penalties for violated constraints until 12 cards.
 3. **Simulated annealing over one-card swaps.** 20,000 proposals, geometric cooling from temperature 8 to 0.05, penalties `mu_i * violation_i` inside the search, best zero-penalty deck kept. Evaluation is incremental: 11 pair lookups for synergy and an inverted index card -> meta lists for o1.
 4. **MAP-Elites archive.** Descriptors: primary plan (18 families of section 2) x curve shape (average cost below 2.6, 2.6 to 3.3, above 3.3) = 54 cells. Each cell keeps the feasible deck with the highest F. Parents are drawn uniformly from occupied cells and mutated by one or two swaps or by injecting a package. The UI shows the grid: up to 54 different brews instead of one.
@@ -332,9 +333,26 @@ All heuristic unless marked. D = derived by a script here, M = measured on S2 / 
 
 ## Open questions
 
-1. Board capacity, the front-row rule, the tie-break and Limbo's text are not confirmed here; they change the placement policy of the goldfish model and plans 3, 9, 13 and 15.
+1. Board capacity (4 per side), the front-row rule, the tie-break and Limbo's text were settled on 2026-11-12 (section 1.1, `rules-and-formats.md` R10, R12, R14) at card-text and community level; no official wording exists for capacity, tie-break or priority. They set the placement policy of the goldfish model and plans 3, 9, 13 and 15.
 2. No community number exists for the power that wins a lane; the goldfish percentile needs the meta corpus and has not been run.
 3. Corpus size: one tier-list page gives 15 lists. The novelty and gem formulas need hundreds; `meta-sources.md` must say whether a source offers that volume with play rates and, ideally, drawn win rates.
 4. S2's week-1 win rates are inflated by bots by its own account; plan weights should not be fitted to them.
 5. Thresholds C6 and C7 depend on how `mechanics.md` scores interactions and quality; re-tune them with the known-good test once the engine exists.
 6. Whether Stardust stops Nimrod copies, DoomBots and Excalibur is inferred from text, not tested.
+
+## Verification log (2026-11-12)
+
+Independent pass against the Untapped dump (`raw/cards/cards.json`, build 58.15.3, 791 rows) and the live S2 page.
+
+| Claim | Checked against | Verdict |
+|---|---|---|
+| "570 released" cards | Untapped rule: 511. 570 is the count of `status: released` rows in S3, mode copies included | Corrected in the notes, 1.5, 4.2 and 4.5. The S3 row in Sources and the "570 cards" in the 4.5 feasibility run (a synthetic size) are left as written |
+| Deck 12 different cards; opening hand 3; draw 1 per turn including turn 1; 6 turns; hand limit 7 | S1 local copy; official Sanctum Showdown post ("start with three cards in your hand", "Each turn, you draw a card") | Confirmed; same values as `rules-and-formats.md` R1 to R7 |
+| Cards seen by turn t = 3 + t; 9 of 12 by turn 6; 75.0% / 54.5% / 38.2% | Arithmetic from the confirmed inputs (9/12; 9x8/132; 9x8x7/1320) | Confirmed. `draw_odds.py` was not re-run |
+| Open items (a) capacity and front row, (b) tie-break, (c) Limbo | Card text, community pages, Untapped `locations.json` | Corrected: all three now stated in 1.1 |
+| Quoted text, cost and power of 42 cards (sections 1.2, 2 and the tech table of 3): Jubilee, King Eitri, Jane Foster Mighty Thor, Thor, Beta Ray Bill, Magik, Zombie Giant-Man, Sasquatch (power 11), Shou-Lao the Undying (power 8), Killmonger 3/3, Anti-Polar Magneto, Stardust 4/6, Luke Cage 2/2, High Evolutionary, Shang-Chi 4/3, Nimrod, Armor 2/3, Galactus, Iron Man, The Living Tribunal, Enchantress 5/8, Wiccan, Professor X, Shadow King 3/4, Mobius M. Mobius 3/3, Cosmo 3/3, Rogue 3/3, Echo 1/2, Super-Skrull 4/2, Red Guardian 3/2, Cosmic Ghost Rider 5/6, Deafening Chord 1/0, Alioth 6/7, Iceman 1/2, Leech 4/5, Black Bolt 5/8, Gorgon 2/3, Juggernaut 4/5, Magneto 6/12, Human Torch, and name-only checks of Vampire Deacon Frost and Werewolf By Night | Untapped dump | Confirmed 42 of 42 on cost and power; text equal on 41. The one difference, Jane Foster Mighty Thor "cost 0", is a dropped "0" in the Untapped text, so the quote here is right. Mismatch rate 0% |
+| Deafening Chord is a tech "card" at 1/0 | Untapped: `isSkill`, cost 1 | Confirmed, with the note that it is a skill: it has no Power and does not stay on the board |
+| 15 lists on S2, deck codes decodable | S2 re-fetched: 15 short codes, each 12 distinct released cards | Confirmed |
+| 132 distinct cards, 99 in exactly one list; Mobius M. Mobius in 5 lists; Scarlet Witch Queen of Chaos, Thanos Fractured Frontier, Shadow King in 4 | Recount from the 15 live codes | Confirmed |
+| Mean power by cost, C(n,12), "23% of released" | Recomputed on the 511 pool | Corrected |
+| Curve table, energy model, novelty and gem formulas, literature list, tier-list win rates and commentary quotes | not re-run or re-read (out of this pass's budget) | Could not confirm in this pass |

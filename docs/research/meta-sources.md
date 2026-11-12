@@ -26,7 +26,13 @@ Kaggle dataset (needs an account; contents not inspected), GitHub (no deck datas
 
 Site `https://snap.untapped.gg`, `robots.txt` is `User-agent: * / Allow: /` (200). The API host has no robots file:
 `https://api.snap.untapped.gg/robots.txt` returns 403 `{"message":"Missing Authentication Token"}` (API gateway
-default). The terms of service were not read; see open questions.
+default). Terms of service, read 2026-11-12 at `https://hearthsim.net/legal/terms-of-service.html` (linked from the site
+footer): use is licensed "solely for your personal, non-commercial use"; users agree not to "access any and all non API
+based services in a manner that sends more request messages to the Service's servers in a given period of time than a
+human can reasonably produce in the same period by using a conventional on-line web browser"; and "You agree that you
+shall not modify, copy, distribute, frame, reproduce, republish, download, scrape, display, post, transmit, or sell in
+any form or by any means, in whole or in part, or otherwise exploit the Service without our express prior written
+permission." The last sentence has no exception for personal use; see open questions.
 
 Base: `https://api.snap.untapped.gg/api/v1/`. Found by reading the Next.js bundle
 (`static.snap.untapped.gg/_next/static/chunks/pages/_app-2e42c957379734b6.js` and chunk `9953-…js`).
@@ -350,8 +356,10 @@ at least 5 lists; about 35,000 distinct pairs exist before that cut, so the tabl
 ## 6. Open questions
 
 1. Untapped.gg terms of service: is unattended reading of the undocumented `/free` API acceptable for a local,
-   single-user tool? robots.txt allows the site and the endpoints are anonymous, but that is not permission. The owner
-   should read the terms or ask before this ships in a sync command. If the answer is no, there is no comparable
+   single-user tool? robots.txt allows the site and the endpoints are anonymous, but that is not permission. The terms
+   were read on 2026-11-12 (wording in 2.1): the request-rate clause is met by the sync recipe, but "download, scrape
+   ... without our express prior written permission" is not obviously met. The owner should decide or ask HearthSim
+   before this ships in a sync command. If the answer is no, there is no comparable
    fallback and the app would need manually imported lists.
 2. Does `current_meta_period.id` change on every balance patch and OTA? Needs observation over a few weeks.
 3. The exact free-tier transform of the cube value was not decoded. Cube rate matters more than win rate in Snap,
@@ -361,3 +369,22 @@ at least 5 lists; about 35,000 distinct pairs exist before that cut, so the tabl
 5. The Kaggle dataset might hold historical lists; a person has to download it to find out.
 6. The `ssrTierList` on the Untapped meta page uses a filter I could not identify (29,523 games); if the app wants to
    show Untapped's own tier number it has to be reverse-engineered or left out.
+
+## Verification log (2026-11-12)
+
+Independent pass; one GET per endpoint with `User-Agent: SnapForge/0.1`, and the local files in `raw/meta/untapped/`.
+
+| Claim | Checked against | Verdict |
+|---|---|---|
+| `filter-manifest`: 200, about 2 KB, meta period 137 starting 2026-11-03T20:01:54Z, "Nov 3 - Knights of Avalon Season" | Live GET (2,040 bytes) | Confirmed. `min.num_games` now reads 345,061 (345,062 at research time); `num_decks` 4,763 |
+| `decks_stats_by_pool_v4/free?TimestampRangeFilter=CURRENT_META_PERIOD`: 200, 1.36 MB, 4,763 lists, `d` = 12 indexes into the response's own `d_map` (510 entries) | Live GET (1,356,293 bytes) | Confirmed; every row has 12 distinct indexes; row shape as described, third value near -10 |
+| `card_stats_by_pool_v2/free`: 200, 332 KB, 511 cards, ranks Iron to Vibranium only | Live GET (331,776 bytes) | Confirmed (Iron, Bronze, Silver, Gold, Platinum, Diamond, Vibranium) |
+| `snapjson` cards: 791 defs, 512 `collectible` | Live GET | Confirmed |
+| Released collectible cards = 511 | Recomputed with the rule in `data-sources.md` 1.1 | Confirmed. This is the project's pool; the decks `d_map` is that set minus `Redwing`. The card-stats file has 511 keys (count checked, set equality not checked) |
+| Every list is 12 distinct cards from the released pool | Local `decks_stats_by_pool_v4.CURRENT_META_PERIOD.json` | Confirmed: 4,763 of 4,763; no id outside the 511 |
+| Skill cards appear in lists as normal cards | Same file joined to `isSkill` | Confirmed: 1,285 lists hold at least one skill, at most 5 |
+| Season cards released 2026-11-03 to 11-10 | `seriesStartTimestamps` in the dump | Confirmed (Arthur Pendragon, Captain Britain, Merlin of Avalon 11-03; Mordred 11-05; Lancelot 11-10) |
+| `snap.untapped.gg/robots.txt` is `User-agent: * / Allow: /` | Live GET | Confirmed |
+| Terms of service "not read" | `https://hearthsim.net/legal/terms-of-service.html`, live GET | Corrected: wording recorded in 2.1 and open question 1. Whether the sync is permitted: could not confirm |
+| Marvel Snap Zone `getinfo` is disallowed by its robots.txt | not re-fetched; `getinfo` was not requested in this pass | Could not confirm in this pass (unchanged) |
+| marvelsnap.pro `getmeta` / `getdecks`, Kaggle, GitHub search, `archetypes_manifest_v3`, `archetypes_by_pool_v4`, the other `TimestampRangeFilter` values, section 3 statistics | not re-requested or recomputed (budget) | Could not confirm in this pass |
