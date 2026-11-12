@@ -1,0 +1,2189 @@
+{
+ "about": [
+  "Hand-verified reading of card text (plan Task 4). Each entry was written by reading `text` (the synced, cleaned card text at fixture capture), not from parser output.",
+  "A card matches when the parser clauses that carry at least one effect, in sentence order, equal `clauses`: same trigger and the same multiset of [kind, target] effects.",
+  "Selection: the ten cards the research prototype mis-targeted (mechanics §2.1), the tech cards of theory §3, five or more per major axis, and ten drawn with mulberry32(2026) from released cards with text that are not already listed and not in the overrides list of mechanics §5.",
+  "Target conventions: self = this card; own_here / enemy_here / all_here = cards in play at this card's location (all = both sides); own_anywhere / enemy_anywhere / all_anywhere = in play at any location (a named location such as \"the middle location\" is anywhere); own_other_locations = your cards (or your side's power) at the other locations; own_hand / own_deck / enemy_hand / enemy_deck = cards in that zone; both = both players, both hands or both decks; own / enemy = a side without a zone (created, summoned or board-added cards, side-wide cost rules); own_player / enemy_player = the player (energy, draws, play limits); own_next_played, own_played_card, enemy_played_card, own_moved_card, enemy_moved_card = the card named by the trigger; location = the location itself.",
+  "Kind conventions: positive Power = buff, negative Power = afflict (also on own cards); copy_card targets where the copy lands; resurrect targets whose card returns; merge targets the other card of the merge; loc_power targets the side that gets the Power; a bare \"+N Power\" with no recipient is self."
+ ],
+ "cards": [
+  {
+   "defId": "WadeWilson",
+   "why": "prototype-wrong",
+   "text": "When Destroyed: Replace this with a 1-Cost card from your hand or deck with +2 Power.",
+   "clauses": [
+    {
+     "trigger": "when_destroyed",
+     "effects": [
+      [
+       "summon",
+       "own"
+      ],
+      [
+       "buff",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Tarantula",
+   "why": "prototype-wrong",
+   "text": "End of Turn: If you have the highest Power among cards in play, give this and 2 characters in your hand +1 Power.",
+   "clauses": [
+    {
+     "trigger": "end_of_turn",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ],
+      [
+       "buff",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Mirage",
+   "why": "prototype-wrong",
+   "text": "On Reveal: Copy the character that costs the least from your opponent's hand into your hand. Give it +2 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "copy_card",
+       "own_hand"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "CaptainBritain",
+   "why": "prototype-wrong",
+   "text": "After you play a 4-Cost or more card, give it +1 Power and a card in your hand -1 Cost.",
+   "clauses": [
+    {
+     "trigger": "on_own_play",
+     "effects": [
+      [
+       "buff",
+       "own_played_card"
+      ],
+      [
+       "cost_reduce",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "WolverineHorseman",
+   "why": "prototype-wrong",
+   "text": "Objective: This has 6 or more Power -> Give one of your cards at each location +4 Power. (4/6)",
+   "clauses": [
+    {
+     "trigger": "objective",
+     "effects": [
+      [
+       "buff",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "ShadowlandsDaredevil",
+   "why": "prototype-wrong",
+   "text": "On Reveal: Shuffle in 3 Demons. When you draw a card with 6 or more Power, +2 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "gen_deck",
+       "own_deck"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_draw_any",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Annihilus",
+   "why": "prototype-wrong",
+   "text": "On Reveal: Your cards with Power below 0 switch sides. Destroy those that can't.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "switch_sides",
+       "own_anywhere"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Sandman",
+   "why": "prototype-wrong",
+   "text": "On Reveal: Next turn, cards cost 1 more. (maximum 6)",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "cost_increase",
+       "both"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "JaneFosterFracturedFrontier",
+   "why": "prototype-wrong",
+   "text": "On Reveal: Judge 4 other random characters. +1 Power (if yours) or -1 Power (enemies). Quickdraw: Judge the worthy again.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "own_anywhere"
+      ],
+      [
+       "afflict",
+       "enemy_anywhere"
+      ]
+     ]
+    },
+    {
+     "trigger": "quickdraw",
+     "effects": [
+      [
+       "repeat_on_reveal",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "ZombieGiantMan",
+   "why": "prototype-wrong",
+   "text": "On Reveal: Horde +2, then this gains Power equal to your Zombie Horde.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "horde",
+       "own"
+      ],
+      [
+       "power_absorb",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "ShadowKing",
+   "why": "tech",
+   "text": "On Reveal: Reset all cards here to their original Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "power_set",
+       "all_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "MobiusMMobius",
+   "why": "tech",
+   "text": "Ongoing: Your Costs can't be increased. Your opponent's Costs can't be reduced.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "cost_other",
+       "own"
+      ]
+     ]
+    },
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "cost_other",
+       "enemy"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Stardust",
+   "why": "tech",
+   "text": "Ongoing: Cards can't be added to locations except by playing or moving them.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "lockdown",
+       "both"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "LukeCage",
+   "why": "tech",
+   "text": "Ongoing: Your front-row cards can't have their Power reduced.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "protect",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Cosmo",
+   "why": "tech",
+   "text": "Ongoing: On Reveal abilities won't happen here.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "deny_on_reveal",
+       "location"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "ShangChi",
+   "why": "tech",
+   "text": "On Reveal: Destroy an enemy card here that has 10 or more Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Enchantress",
+   "why": "tech",
+   "text": "On Reveal: Remove the abilities from all Ongoing cards here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "silence",
+       "all_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Rogue",
+   "why": "tech",
+   "text": "On Reveal: Steal the text from an enemy Ongoing card here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "steal_text",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Echo",
+   "why": "tech",
+   "text": "After your opponent plays an Ongoing card here, remove its abilities.",
+   "clauses": [
+    {
+     "trigger": "on_opp_play",
+     "effects": [
+      [
+       "silence",
+       "enemy_played_card"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "SuperSkrull",
+   "why": "tech",
+   "text": "Ongoing: Has the Ongoing effects of all enemy cards.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "repeat_ongoing",
+       "enemy_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Killmonger",
+   "why": "tech",
+   "text": "On Reveal: Destroy ALL 1-Cost cards.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "all_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Armor",
+   "why": "tech",
+   "text": "Ongoing: Cards here can't be destroyed.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "protect",
+       "all_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "RedGuardian",
+   "why": "tech",
+   "text": "On Reveal: Afflict the lowest-Power enemy card here with -2 Power and remove its text.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "afflict",
+       "enemy_here"
+      ],
+      [
+       "silence",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "CosmicGhostRider",
+   "why": "tech",
+   "text": "On Reveal: Remove the text from front-row enemy cards here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "silence",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "DeafeningChord",
+   "why": "tech",
+   "text": "On Reveal: Remove the text of a 3-Cost or lower enemy character here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "silence",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Alioth",
+   "why": "tech",
+   "text": "On Reveal: Remove the text from all unrevealed enemy characters here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "silence",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Iceman",
+   "why": "tech",
+   "text": "On Reveal: Give a card in your opponent's hand +1 Cost. (maximum 6)",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "cost_increase",
+       "enemy_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Leech",
+   "why": "tech",
+   "text": "On Reveal: Remove the text from 6-Cost or more cards in your opponent's hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "silence",
+       "enemy_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "BlackBolt",
+   "why": "tech",
+   "text": "On Reveal: Discard the card that costs the least from your opponent's hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "discard",
+       "enemy_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Gorgon",
+   "why": "tech",
+   "text": "Ongoing: Your opponent's created cards cost 1 more. (maximum 6)",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "cost_increase",
+       "enemy"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Juggernaut",
+   "why": "tech",
+   "text": "On Reveal: Move away all enemy cards played here this turn. (including unrevealed cards)",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Magneto",
+   "why": "tech",
+   "text": "On Reveal: Move all enemy 3 and 4-Cost cards to this location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "enemy_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Carnage",
+   "why": "axis:destroy",
+   "text": "On Reveal: Destroy your other cards here. +2 Power for each destroyed.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "own_here"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Deathlok",
+   "why": "axis:destroy",
+   "text": "On Reveal: Destroy your other cards here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Destroyer",
+   "why": "axis:destroy",
+   "text": "On Reveal: Destroy your cards at other locations.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "own_other_locations"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Venom",
+   "why": "axis:destroy",
+   "text": "On Reveal: Destroy your other cards here. Add their Power to this card.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "own_here"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "power_absorb",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Tombstone",
+   "why": "axis:destroy",
+   "text": "On Reveal: Destroy your lowest-Power card at each other location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "own_other_locations"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "LadyDeathstrike",
+   "why": "axis:destroy",
+   "text": "On Reveal: Destroy each card here with 3 or less Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "all_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Deadpool",
+   "why": "axis:destroy",
+   "text": "When Destroyed: Return this to your hand with double the Power.",
+   "clauses": [
+    {
+     "trigger": "when_destroyed",
+     "effects": [
+      [
+       "bounce",
+       "self"
+      ],
+      [
+       "power_double",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Elektra",
+   "why": "axis:destroy",
+   "text": "On Reveal: Destroy an enemy 1-Cost card here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Blade",
+   "why": "axis:discard",
+   "text": "On Reveal: Discard the rightmost card from your hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "discard",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Modok",
+   "why": "axis:discard",
+   "text": "On Reveal: Discard your hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "discard",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "MoonKnight",
+   "why": "axis:discard",
+   "text": "On Reveal: Discard an even-costed card from each player's hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "discard",
+       "both"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "SilverSamurai",
+   "why": "axis:discard",
+   "text": "On Reveal: Each player discards the lowest-Power character from their hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "discard",
+       "both"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Apocalypse",
+   "why": "axis:discard",
+   "text": "When Discarded: Put this back with +4 Power.",
+   "clauses": [
+    {
+     "trigger": "when_discarded",
+     "effects": [
+      [
+       "resurrect",
+       "self"
+      ],
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Swarm",
+   "why": "axis:discard",
+   "text": "When Discarded: Add two copies of this that cost 0 to your hand.",
+   "clauses": [
+    {
+     "trigger": "when_discarded",
+     "effects": [
+      [
+       "copy_card",
+       "own_hand"
+      ],
+      [
+       "cost_reduce",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "CorvusGlaive",
+   "why": "axis:discard",
+   "text": "On Reveal: Discard 2 cards from your hand to get +1 Max Energy.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "discard",
+       "own_hand"
+      ],
+      [
+       "energy_max",
+       "own_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "DoctorStrange",
+   "why": "axis:move",
+   "text": "On Reveal: Move your highest-Power card(s) to this location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Heimdall",
+   "why": "axis:move",
+   "text": "On Reveal: Move your other cards one location to the left.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Aero",
+   "why": "axis:move",
+   "text": "On Reveal: The last card your opponent played moves to this location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "enemy_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "GhostSpider",
+   "why": "axis:move",
+   "text": "On Reveal: The last card you played moves here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Polaris",
+   "why": "axis:move",
+   "text": "On Reveal: Move an enemy 1 or 2-Cost card to this location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "enemy_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "SpiderMan",
+   "why": "axis:move",
+   "text": "On Reveal: Move to another location and pull an enemy card from here to there.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "self"
+      ],
+      [
+       "move",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "HumanTorch",
+   "why": "axis:move",
+   "text": "When this moves, double its Power.",
+   "clauses": [
+    {
+     "trigger": "on_self_move",
+     "effects": [
+      [
+       "power_double",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Kingpin",
+   "why": "axis:move",
+   "text": "When an enemy card moves here, afflict it with -2 Power.",
+   "clauses": [
+    {
+     "trigger": "on_other_move",
+     "effects": [
+      [
+       "afflict",
+       "enemy_moved_card"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Stegron",
+   "why": "axis:move",
+   "text": "On Reveal: Move an enemy card here one location to the right.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Beast",
+   "why": "axis:bounce",
+   "text": "On Reveal: Return your other cards here to your hand. They cost 1 less next turn.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "bounce",
+       "own_here"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "cost_reduce",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Falcon",
+   "why": "axis:bounce",
+   "text": "On Reveal: Return your 1-Cost cards to your hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "bounce",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Toxin",
+   "why": "axis:bounce",
+   "text": "On Reveal: Return your other cards here to your hand. +2 Power for each returned.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "bounce",
+       "own_here"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "KittyPryde",
+   "why": "axis:bounce",
+   "text": "Start of Turn: Return this to your hand. When this returns to your hand, +1 Power.",
+   "clauses": [
+    {
+     "trigger": "start_of_turn",
+     "effects": [
+      [
+       "bounce",
+       "self"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_self_bounce",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Boomerang",
+   "why": "axis:bounce",
+   "text": "When this returns to your hand, randomly steal 4 Power from characters in your opponent's hand. Activate: Return this to your hand.",
+   "clauses": [
+    {
+     "trigger": "on_self_bounce",
+     "effects": [
+      [
+       "power_steal",
+       "enemy_hand"
+      ]
+     ]
+    },
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "bounce",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "BlueMarvel",
+   "why": "axis:ongoing",
+   "text": "Ongoing: Your other cards have +1 Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "buff",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "KaZar",
+   "why": "axis:ongoing",
+   "text": "Ongoing: Your 1-Cost cards have +1 Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "buff",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "CaptainAmerica",
+   "why": "axis:ongoing",
+   "text": "Ongoing: Your other Ongoing cards here have +2 Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "buff",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Klaw",
+   "why": "axis:ongoing",
+   "text": "Ongoing: The location to the right has +6 Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "loc_power",
+       "own_other_locations"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Onslaught",
+   "why": "axis:ongoing",
+   "text": "Ongoing: Your other Ongoing effects here apply an additional time.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "repeat_ongoing",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Namor",
+   "why": "axis:ongoing",
+   "text": "Ongoing: +5 Power if this is your only card here.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "RedSkull",
+   "why": "axis:ongoing",
+   "text": "Ongoing: Enemy cards here have +2 Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "buff",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "TyphoidMary",
+   "why": "axis:ongoing",
+   "text": "Ongoing: Your other cards here have -2 Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "afflict",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "ManThing",
+   "why": "axis:ongoing",
+   "text": "Ongoing: 3-Cost or less cards here have -2 Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "afflict",
+       "all_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Starbrand",
+   "why": "axis:ongoing",
+   "text": "Ongoing: Your opponent has +3 Power at each other location.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "loc_power",
+       "enemy"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Odin",
+   "why": "axis:on-reveal",
+   "text": "On Reveal: Repeat the On Reveal abilities of your other cards here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "repeat_on_reveal",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Wong",
+   "why": "axis:on-reveal",
+   "text": "Ongoing: Your On Reveal abilities here repeat.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "repeat_on_reveal",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Ironheart",
+   "why": "axis:on-reveal",
+   "text": "On Reveal: Give 2 of your other cards +3 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Forge",
+   "why": "axis:on-reveal",
+   "text": "On Reveal: Give the next card you play +2 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "own_next_played"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "AmericaChavez",
+   "why": "axis:on-reveal",
+   "text": "On Reveal: Give the top card of your deck +3 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "own_deck"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Nakia",
+   "why": "axis:on-reveal",
+   "text": "On Reveal: Give all cards in your hand +1 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Hazmat",
+   "why": "axis:on-reveal",
+   "text": "On Reveal: Afflict all other cards with -1 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "afflict",
+       "all_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Spectrum",
+   "why": "axis:on-reveal",
+   "text": "On Reveal: Give your Ongoing cards +2 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Zabu",
+   "why": "axis:cost",
+   "text": "On Reveal: Give each 4-Cost card in your deck -1 Cost.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "cost_reduce",
+       "own_deck"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Sera",
+   "why": "axis:cost",
+   "text": "Ongoing: Cards in your hand cost 1 less. (minimum 1)",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "cost_reduce",
+       "own_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Quinjet",
+   "why": "axis:cost",
+   "text": "Ongoing: Your created cards cost 1 less. (minimum 1)",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "cost_reduce",
+       "own"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Mockingbird",
+   "why": "axis:cost",
+   "text": "Costs 1 less for each of your created cards in play.",
+   "clauses": [
+    {
+     "trigger": "static_cost",
+     "effects": [
+      [
+       "cost_reduce",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Wave",
+   "why": "axis:cost",
+   "text": "On Reveal: All cards cost a maximum of 4 until the end of next turn.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "cost_reduce",
+       "both"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "BlackSwan",
+   "why": "axis:cost",
+   "text": "Activate: Until the end of next turn, your 1-Cost cards cost 0.",
+   "clauses": [
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "cost_reduce",
+       "own"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Death",
+   "why": "axis:cost",
+   "text": "Costs 1 less for each card destroyed this game.",
+   "clauses": [
+    {
+     "trigger": "static_cost",
+     "effects": [
+      [
+       "cost_reduce",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Electro",
+   "why": "axis:energy",
+   "text": "On Reveal: +1 Max Energy. Ongoing: You can only play 1 card a turn.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "energy_max",
+       "own_player"
+      ]
+     ]
+    },
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "lockdown",
+       "own_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Psylocke",
+   "why": "axis:energy",
+   "text": "On Reveal: Next turn, you get +1 Energy.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "energy_gain",
+       "own_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "JenniferKale",
+   "why": "axis:energy",
+   "text": "Activate: Next turn, you get +1 Energy.",
+   "clauses": [
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "energy_gain",
+       "own_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Wiccan",
+   "why": "axis:energy",
+   "text": "On Reveal: If you've spent all your Energy on previous turns, +2 Max Energy.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "energy_max",
+       "own_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Havok",
+   "why": "axis:energy",
+   "text": "End of Turn: You lose 1 Max Energy and this gains +3 Power.",
+   "clauses": [
+    {
+     "trigger": "end_of_turn",
+     "effects": [
+      [
+       "energy_max",
+       "own_player"
+      ],
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "HopeSummers",
+   "why": "axis:energy",
+   "text": "After you play a card here, you get +1 Energy next turn.",
+   "clauses": [
+    {
+     "trigger": "on_own_play",
+     "effects": [
+      [
+       "energy_gain",
+       "own_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Quicksand",
+   "why": "axis:energy",
+   "text": "The next time your opponent would start a turn with bonus Energy, they don't get it.",
+   "clauses": [
+    {
+     "trigger": "on_opp_bonus_energy",
+     "effects": [
+      [
+       "energy_deny",
+       "enemy_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "SpiderWoman",
+   "why": "axis:affliction",
+   "text": "On Reveal: Afflict all enemy cards here with -1 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "afflict",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Scorpion",
+   "why": "axis:affliction",
+   "text": "On Reveal: Afflict cards in your opponent's hand with -1 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "afflict",
+       "enemy_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Selene",
+   "why": "axis:affliction",
+   "text": "On Reveal: Afflict the lowest-Power card in each player's hand with -3 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "afflict",
+       "both"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Yellowjacket",
+   "why": "axis:affliction",
+   "text": "On Reveal: Afflict your other cards here with -1 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "afflict",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "KarimaShapandar",
+   "why": "axis:affliction",
+   "text": "Activate: Afflict the highest-Power enemy card with -7 Power.",
+   "clauses": [
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "afflict",
+       "enemy_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Lasher",
+   "why": "axis:affliction",
+   "text": "Activate: Afflict an enemy card here with negative Power equal to this card's Power.",
+   "clauses": [
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "afflict",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Ajax",
+   "why": "axis:affliction",
+   "text": "Ongoing: +1 Power for each card in play afflicted with negative Power.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "MasterMold",
+   "why": "axis:junk",
+   "text": "On Reveal: Add 2 Sentinel to your opponent's hand.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "junk_hand",
+       "enemy_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Korg",
+   "why": "axis:junk",
+   "text": "On Reveal: Shuffle a Rock into your opponent's deck.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "junk_deck",
+       "enemy_deck"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "WhiteWidow",
+   "why": "axis:junk",
+   "text": "On Reveal: Add a Widow's Kiss to your opponent's side of this location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "junk_board",
+       "enemy"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "BlackWidow",
+   "why": "axis:junk",
+   "text": "Activate: Add a Widow's Bite to your opponent's hand.",
+   "clauses": [
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "junk_hand",
+       "enemy_hand"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "DoctorOctopus",
+   "why": "axis:junk",
+   "text": "On Reveal: Pull the lowest-Power character from your opponent's hand to their side of this location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "junk_board",
+       "enemy"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Gladiator",
+   "why": "axis:junk",
+   "text": "On Reveal: Add a card from your opponent's deck to their side of this location. If it has less Power, destroy it.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "junk_board",
+       "enemy"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "destroy",
+       "enemy_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Maximus",
+   "why": "axis:junk",
+   "text": "On Reveal: Your opponent draws 2 cards.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "opp_draw",
+       "enemy_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Agony",
+   "why": "axis:merge",
+   "text": "After you play a card here, merge this into it.",
+   "clauses": [
+    {
+     "trigger": "on_own_play",
+     "effects": [
+      [
+       "merge",
+       "own_played_card"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Hulkbuster",
+   "why": "axis:merge",
+   "text": "On Reveal: Merge this into one of your cards here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "merge",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Blob",
+   "why": "axis:merge",
+   "text": "On Reveal: Merge cards from your deck into this until it gains 13 or more Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "merge",
+       "own_deck"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "ManSpider",
+   "why": "axis:merge",
+   "text": "On Reveal: Merge the last card you played into this. When this merges, double its Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "merge",
+       "own_anywhere"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_self_merge",
+     "effects": [
+      [
+       "power_double",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "StrangeSupreme",
+   "why": "axis:merge",
+   "text": "Gains +2 Power from merging. End of Turn: Merge one of your created cards into this.",
+   "clauses": [
+    {
+     "trigger": "on_self_merge",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    },
+    {
+     "trigger": "end_of_turn",
+     "effects": [
+      [
+       "merge",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "SymbioteSpiderMan",
+   "why": "axis:merge",
+   "text": "Activate: Merge your lowest-Cost card here into this. Copy its text like it just revealed.",
+   "clauses": [
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "merge",
+       "own_here"
+      ]
+     ]
+    },
+    {
+     "trigger": "activate",
+     "effects": [
+      [
+       "copy_text",
+       "own_here"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "LinLie",
+   "why": "random",
+   "text": "On Reveal: Add the Sword of Fu Xi to another location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "gen_board",
+       "own"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Hela",
+   "why": "random",
+   "text": "On Reveal: For each different Cost among them, resurrect a card you discarded to a random location.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "resurrect",
+       "own"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "RedHulk",
+   "why": "random",
+   "text": "End of Turn: If your opponent has unspent Energy, +3 Power. (if in hand or in play)",
+   "clauses": [
+    {
+     "trigger": "end_of_turn",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "OmegaRed",
+   "why": "random",
+   "text": "Ongoing: If you're winning here, +3 Power to other locations.",
+   "clauses": [
+    {
+     "trigger": "ongoing",
+     "effects": [
+      [
+       "loc_power",
+       "own_other_locations"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "CullObsidian",
+   "why": "random",
+   "text": "You can only play this where you have a 1-Cost card.",
+   "clauses": [
+    {
+     "trigger": "play_restriction",
+     "effects": [
+      [
+       "play_restriction",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "FallenOne",
+   "why": "random",
+   "text": "On Reveal: Set your Max Energy equal to this card's Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "energy_max",
+       "own_player"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "RocketRaccoon",
+   "why": "random",
+   "text": "On Reveal: If your opponent played a card here this turn, +4 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Storm",
+   "why": "random",
+   "text": "On Reveal: Flood this location. Next turn is the last turn cards can be played here.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "loc_change",
+       "location"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "lockdown",
+       "both"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "GrandMaster",
+   "why": "random",
+   "text": "On Reveal: Move one of your other On Reveal cards here to the middle location. Its ability happens again.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "move",
+       "own_here"
+      ]
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "repeat_on_reveal",
+       "own_anywhere"
+      ]
+     ]
+    }
+   ]
+  },
+  {
+   "defId": "Ares",
+   "why": "random",
+   "text": "On Reveal: Compare the Power of the top 3 cards of both decks. If your total is higher, +6 Power.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      [
+       "buff",
+       "self"
+      ]
+     ]
+    }
+   ]
+  }
+ ]
+}

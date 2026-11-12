@@ -1,0 +1,521 @@
+{
+ "about": [
+  "Reviewed clauses for cards the parser cannot read (spec §8.1). Each entry was written by reading reviewedText, the synced card text it applies to.",
+  "An entry whose reviewedText differs from the current synced text is ignored and reported stale by the coverage report: re-read the card and update the entry.",
+  "Vocabulary: src/engine/text/vocab.ts (TRIGGERS, EFFECT_KINDS, TARGETS); kind \"special\" marks an effect the text does not spell out."
+ ],
+ "cards": {
+  "Aurora": {
+   "reviewedText": "On Reveal: Give one of your other On Reveal cards at each location +2 Power. Repeat for Ongoing, Activate, and End of Turn.",
+   "note": "Second sentence repeats the first for three more keywords (mechanics §5: elliptical).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "buff",
+       "target": "own_anywhere",
+       "magnitude": 2,
+       "selectors": [
+        "sel:on_reveal_card",
+        "sel:other"
+       ]
+      }
+     ],
+     "text": "Give one of your other On Reveal cards at each location +2 Power."
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "buff",
+       "target": "own_anywhere",
+       "magnitude": 2,
+       "selectors": [
+        "sel:ongoing_card",
+        "sel:activate_card",
+        "sel:eot_card",
+        "sel:other"
+       ]
+      }
+     ],
+     "text": "Repeat for Ongoing, Activate, and End of Turn.",
+     "notes": [
+      "one card per keyword at each location"
+     ]
+    }
+   ]
+  },
+  "GalactusFirstSteps": {
+   "reviewedText": "My Herald is the next character I see you play. End of Turn: +2 Power if you're winning my Herald's location. (if in hand or in play)",
+   "note": "\"My Herald\" marks the next character you play; the End of Turn buff reads its location (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "static",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "own_next_played",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "My Herald is the next character I see you play.",
+     "notes": [
+      "marks the Herald"
+     ]
+    },
+    {
+     "trigger": "end_of_turn",
+     "effects": [
+      {
+       "kind": "buff",
+       "target": "self",
+       "magnitude": 2,
+       "selectors": []
+      }
+     ],
+     "text": "End of Turn: +2 Power if you're winning my Herald's location.",
+     "conditions": [
+      "winning_here"
+     ],
+     "notes": [
+      "if in hand or in play",
+      "at the Herald's location"
+     ]
+    }
+   ]
+  },
+  "Gwenpool": {
+   "reviewedText": "On Reveal: Pick a random character in your hand 3 times. Give +2 Power each time.",
+   "note": "Two-sentence loop (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "buff",
+       "target": "own_hand",
+       "magnitude": 2,
+       "selectors": [
+        "sel:random"
+       ]
+      }
+     ],
+     "text": "Pick a random character in your hand 3 times. Give +2 Power each time.",
+     "notes": [
+      "3 picks, the same card can be picked again"
+     ]
+    }
+   ]
+  },
+  "Magik": {
+   "reviewedText": "On Reveal: Replace this location with 'Limbo'. Doesn't work after turn 5.",
+   "note": "Named location and a turn limit (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "loc_change",
+       "target": "location",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Replace this location with 'Limbo'. Doesn't work after turn 5.",
+     "conditions": [
+      "turn_number"
+     ],
+     "notes": [
+      "Limbo: there is a turn 7 this game (rules R1)",
+      "only on turns 1-5"
+     ]
+    }
+   ]
+  },
+  "PsylockeFracturedFrontier": {
+   "reviewedText": "On Reveal: Give cards in your hand that are 5-Cost or more -1 Cost. Quickdraw: Your whole hand instead.",
+   "note": "Quickdraw widens the On Reveal (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "cost_reduce",
+       "target": "own_hand",
+       "magnitude": 1,
+       "selectors": [
+        "sel:cost_ge"
+       ]
+      }
+     ],
+     "text": "Give cards in your hand that are 5-Cost or more -1 Cost."
+    },
+    {
+     "trigger": "quickdraw",
+     "effects": [
+      {
+       "kind": "cost_reduce",
+       "target": "own_hand",
+       "magnitude": 1,
+       "selectors": []
+      }
+     ],
+     "text": "Quickdraw: Your whole hand instead.",
+     "notes": [
+      "the On Reveal reaches every card in your hand"
+     ]
+    }
+   ]
+  },
+  "SamWilson": {
+   "reviewedText": "On Reveal: Add Cap's Shield to another location. Ongoing: Cap's Shield is Moveable.",
+   "note": "Half of the effect is on the Cap's Shield token (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "gen_board",
+       "target": "own",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Add Cap's Shield to another location."
+    },
+    {
+     "trigger": "ongoing",
+     "effects": [
+      {
+       "kind": "grant_moveable",
+       "target": "own",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Cap's Shield is Moveable.",
+     "notes": [
+      "applies to the Cap's Shield token"
+     ]
+    }
+   ]
+  },
+  "SinisterSix": {
+   "reviewedText": "Game Start: The first 6 characters you draw are EVIL! After you play them all, merge them into this and add this to the last one's location. (0/6)",
+   "note": "Marks drawn characters, then a delayed merge (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "game_start",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "own_deck",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "The first 6 characters you draw are EVIL!",
+     "notes": [
+      "marks the first 6 characters drawn"
+     ]
+    },
+    {
+     "trigger": "on_own_play",
+     "effects": [
+      {
+       "kind": "merge",
+       "target": "own_anywhere",
+       "magnitude": null,
+       "selectors": []
+      },
+      {
+       "kind": "summon",
+       "target": "self",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "After you play them all, merge them into this and add this to the last one's location.",
+     "notes": [
+      "after all six marked characters are played"
+     ]
+    }
+   ]
+  },
+  "TechnoOrganicVirus": {
+   "reviewedText": "On Reveal: Infect your other cards here (replace their text). Copy this to your hand.",
+   "note": "\"Infect\" is a unique verb; the parenthesis says it replaces text (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "copy_text",
+       "target": "own_here",
+       "magnitude": null,
+       "selectors": [
+        "sel:other"
+       ]
+      }
+     ],
+     "text": "Infect your other cards here (replace their text).",
+     "notes": [
+      "their text is replaced"
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "copy_card",
+       "target": "own_hand",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Copy this to your hand."
+    }
+   ]
+  },
+  "ThanosFracturedFrontier": {
+   "reviewedText": "Game Start: Your cards have \"Quickdraw: Thanos loads an Infinity Shot.\" On Reveal: Fire all loaded Shots.",
+   "note": "Quoted granted ability; the Shots are tokens (Card_Token) (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "game_start",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "own_deck",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Your cards have \"Quickdraw: Thanos loads an Infinity Shot.\"",
+     "notes": [
+      "grants a Quickdraw ability to your cards"
+     ]
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "self",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Fire all loaded Shots.",
+     "notes": [
+      "Shot effects live on the Shot tokens"
+     ]
+    }
+   ]
+  },
+  "ZombieGalacti": {
+   "reviewedText": "Game Start: Choose 6 other characters in your deck. On Reveal: Transform those cards into copies of this.",
+   "note": "Choice at game start plus mass transform (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "game_start",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "own_deck",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Choose 6 other characters in your deck."
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "transform",
+       "target": "own",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Transform those cards into copies of this.",
+     "notes": [
+      "the six chosen cards, wherever they are"
+     ]
+    }
+   ]
+  },
+  "DoctorOctopusFracturedFrontier": {
+   "reviewedText": "On Reveal: Put your leftmost card in hand on top of your deck to get a random character. Give both +3 Power.",
+   "note": "Parser reads \"Give both\" as this card; \"both\" is the card put on the deck and the character received (found in review).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "deck_stack",
+       "target": "own_hand",
+       "magnitude": null,
+       "selectors": [
+        "sel:leftmost"
+       ]
+      },
+      {
+       "kind": "gen_hand",
+       "target": "own_hand",
+       "magnitude": null,
+       "selectors": [
+        "sel:random"
+       ]
+      }
+     ],
+     "text": "Put your leftmost card in hand on top of your deck to get a random character."
+    },
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "buff",
+       "target": "own_deck",
+       "magnitude": 3,
+       "selectors": [
+        "sel:top_of_deck"
+       ]
+      },
+      {
+       "kind": "buff",
+       "target": "own_hand",
+       "magnitude": 3,
+       "selectors": []
+      }
+     ],
+     "text": "Give both +3 Power."
+    }
+   ]
+  },
+  "BruceBanner": {
+   "reviewedText": "End of Turn: If you have unspent Energy, 33% chance to HULK OUT!",
+   "note": "Result not in text; the token row is BannerHulk (Card_Token) (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "end_of_turn",
+     "effects": [
+      {
+       "kind": "transform",
+       "target": "self",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "End of Turn: If you have unspent Energy, 33% chance to HULK OUT!",
+     "conditions": [
+      "own_unspent_energy"
+     ],
+     "notes": [
+      "33% chance",
+      "becomes the BannerHulk token"
+     ]
+    }
+   ]
+  },
+  "Dormammu": {
+   "reviewedText": "Game Start: Begin a Summoning Ritual. (Add step 1 to hand.)",
+   "note": "Multi-step ritual; the steps are tokens (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "game_start",
+     "effects": [
+      {
+       "kind": "gen_hand",
+       "target": "own_hand",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Game Start: Begin a Summoning Ritual. (Add step 1 to hand.)",
+     "notes": [
+      "ritual steps are the SummoningRitual tokens"
+     ]
+    }
+   ]
+  },
+  "Herbie": {
+   "reviewedText": "Each turn this is in play, swap to a new Activate ability until one is used.",
+   "note": "Abilities are not in the text (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "static",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "self",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Each turn this is in play, swap to a new Activate ability until one is used.",
+     "notes": [
+      "random Activate abilities, not in card text"
+     ]
+    }
+   ]
+  },
+  "NicoMinoru": {
+   "reviewedText": "On Reveal: After you play your next card, cast a spell. (The spell changes each turn.)",
+   "note": "Spells are not in the text (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "own_next_played",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "On Reveal: After you play your next card, cast a spell. (The spell changes each turn.)",
+     "notes": [
+      "the spell changes each turn"
+     ]
+    }
+   ]
+  },
+  "PunisherWarMachine": {
+   "reviewedText": "When drawn, mark one of your empty locations. Objective: Win that location -> +1 Max Energy.",
+   "note": "Marked location; Objective reward (mechanics §5).",
+   "clauses": [
+    {
+     "trigger": "on_draw_self",
+     "effects": [
+      {
+       "kind": "special",
+       "target": "location",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "When drawn, mark one of your empty locations."
+    },
+    {
+     "trigger": "objective",
+     "effects": [
+      {
+       "kind": "energy_max",
+       "target": "own_player",
+       "magnitude": 1,
+       "selectors": []
+      }
+     ],
+     "text": "Objective: Win that location -> +1 Max Energy.",
+     "conditions": [
+      "obj:win_location"
+     ]
+    }
+   ]
+  }
+ }
+}
