@@ -2,6 +2,7 @@
   "name": "snap-forge",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3230",
@@ -10,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "sync": "tsx src/ingest/sync.ts"
+    "sync": "tsx src/ingest/sync.ts",
+    "build:sync": "node packaging/build-sync.mjs",
+    "package": "node packaging/assemble.mjs"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

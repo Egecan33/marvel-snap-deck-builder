@@ -4,9 +4,23 @@ import Database from 'better-sqlite3';
 
 export type Db = Database.Database;
 
-// turbopackIgnore: the bundler must not trace the image files under data/ into the build.
-export const DATA_DIR = process.env.SNAP_FORGE_DATA ?? path.join(/* turbopackIgnore: true */ process.cwd(), 'data');
-export const DEFAULT_DB_PATH = path.join(DATA_DIR, 'forge.db');
+/**
+ * The one place that decides where the database, card images and caches live. Everything else
+ * (server, sync CLI, image route, status) asks this function.
+ * - `SNAP_FORGE_DATA` set: that folder (tests and power users).
+ * - Portable bundle: the launcher sets `SNAP_FORGE_BUNDLE` to the unzipped folder; data goes in
+ *   its `data/` folder, next to the app.
+ * - From source: `./data` under the project root.
+ * turbopackIgnore: the bundler must not trace the image files under data/ into the build.
+ */
+export function dataDir(): string {
+  if (process.env.SNAP_FORGE_DATA) return process.env.SNAP_FORGE_DATA;
+  if (process.env.SNAP_FORGE_BUNDLE) return path.join(/* turbopackIgnore: true */ process.env.SNAP_FORGE_BUNDLE, 'data');
+  return path.join(/* turbopackIgnore: true */ process.cwd(), 'data');
+}
+
+/** `forge.db` in the data folder, unless `SNAP_FORGE_DB` names another file. */
+export const defaultDbPath = (): string => process.env.SNAP_FORGE_DB ?? path.join(dataDir(), 'forge.db');
 
 // Tables of spec §6.3. `cards.json` is the source row as fetched: the class column is what it was
 // at sync time and is recomputed from the row at every load, because it depends on the clock.
@@ -52,7 +66,7 @@ CREATE TABLE IF NOT EXISTS sync_state (step TEXT PRIMARY KEY, finished_at TEXT N
 `;
 
 /** Opens (and creates if needed) the SQLite database. Pass ':memory:' for tests. */
-export function openDb(dbPath: string = process.env.SNAP_FORGE_DB ?? DEFAULT_DB_PATH): Db {
+export function openDb(dbPath: string = defaultDbPath()): Db {
   if (dbPath !== ':memory:') mkdirSync(path.dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');

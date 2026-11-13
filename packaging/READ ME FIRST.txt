@@ -1,0 +1,45 @@
+SNAP FORGE
+==========
+
+Build, rate and improve Marvel Snap decks on your own computer, with an emphasis on
+creative decks that still work. Nothing to install: this folder carries its own copy of Node.js.
+
+START
+  macOS:   double-click "Snap Forge.command"
+  Windows: double-click "Snap Forge.bat"
+
+A window opens and your browser shows the app. Keep that window open while you use
+Snap Forge. Close it, or press Ctrl+C in it, to stop.
+
+FIRST RUN
+  The app ships without card data or card images. The first start opens the Data page:
+  press "Sync everything". It downloads the card list, locations, the current meta lists
+  and about 600 card images. Images come one per second, so it takes about 10-15 minutes.
+  If you stop the app early, start the sync again; it fetches only what is missing.
+  After that, Snap Forge works offline. Refresh the data from the Data page.
+
+  The data comes from Untapped.gg's public pages. Their terms allow personal,
+  non-commercial use only and do not allow scraping without permission. The sync is
+  slow and manual on purpose: you run it yourself, for your own use.
+
+IF YOUR COMPUTER BLOCKS IT (the builds are not signed)
+  macOS ("cannot be opened because it is from an unidentified developer"):
+    right-click "Snap Forge.command", choose Open, then Open again. Only needed once.
+    Or in Terminal:  xattr -dr com.apple.quarantine "/path/to/this/folder"
+  Windows ("Windows protected your PC"):
+    click "More info", then "Run anyway".
+
+WHERE YOUR DATA LIVES
+  In the "data" folder next to "app", inside this folder: decks, settings, card data
+  and images. Delete this whole folder to remove everything.
+
+UPDATING
+  Download the new zip from
+  https://github.com/Egecan33/marvel-snap-deck-builder/releases/latest
+  unzip it, and move the "data" folder from the old folder into the new one to keep
+  your decks and synced data. Then delete the old folder.
+
+Snap Forge is an unofficial fan project. It is not affiliated with, endorsed or
+sponsored by Marvel or Second Dinner. Marvel Snap, its card names, text and artwork
+belong to their owners. The app only listens on 127.0.0.1, so other computers on your
+network cannot reach it. MIT licence, see LICENSE.

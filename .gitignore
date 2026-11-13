@@ -15,3 +15,10 @@ next-env.d.ts
 
 # research outputs that contain card text or are large
 docs/research/analysis/**/out/
+
+# release bundles (packaging/)
+dist/
+release/
+*.db
+*.db-shm
+*.db-wal

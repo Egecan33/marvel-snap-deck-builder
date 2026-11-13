@@ -1,9 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { DATA_DIR } from './db';
+import { dataDir } from './db';
 
 /** `data/images/{defId}.webp`, one 512 px render per card (spec §6.1). */
-export const imageDir = (): string => process.env.SNAP_FORGE_IMAGES ?? path.join(DATA_DIR, 'images');
+export const imageDir = (): string => process.env.SNAP_FORGE_IMAGES ?? path.join(dataDir(), 'images');
 
 /** `<defId>.webp`: a defId is letters and digits only (data §1.1). Nothing else reaches the file system. */
 export const IMAGE_FILE = /^[A-Za-z0-9]{1,80}\.webp$/;

@@ -32,11 +32,17 @@ const run = (): Run =>
 
 export type Spawner = (step: SyncStep | 'all') => Pick<ChildProcess, 'stdout' | 'stderr' | 'on'>;
 
-/** Runs the ingest CLI (`pnpm sync <step>`) from the project root. */
+/**
+ * Runs the ingest CLI (`pnpm sync <step>`) from the project root. Portable bundles set
+ * SNAP_FORGE_SYNC_CLI to the bundled `sync.mjs`, which runs on the server's own Node.
+ */
 const spawnCli: Spawner = (step) => {
   const args = step === 'all' ? [] : [step];
+  const bundled = process.env.SNAP_FORGE_SYNC_CLI;
   const opts = { cwd: process.cwd(), env: process.env, stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'] };
-  return spawn(path.join(process.cwd(), 'node_modules', '.bin', 'tsx'), ['src/ingest/sync.ts', ...args], opts);
+  return bundled
+    ? spawn(process.execPath, [bundled, ...args], opts)
+    : spawn(path.join(process.cwd(), 'node_modules', '.bin', 'tsx'), ['src/ingest/sync.ts', ...args], opts);
 };
 
 /** Progress of the current or last run; `since` skips lines the caller already has. */

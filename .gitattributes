@@ -1,0 +1,9 @@
+# Keep LF everywhere so text fixtures compare equal on Windows checkouts.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.command text eol=lf
+*.png binary
+*.webp binary
+*.jpg binary
+*.ico binary
+*.db binary
