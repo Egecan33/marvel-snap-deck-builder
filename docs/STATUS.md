@@ -2,7 +2,7 @@
 
 This file is the single place a new session reads to continue the build if the previous one was cut off. Update it at every stage boundary, in the same commit as the stage's work.
 
-Last updated: 2026-11-13. Stages 0-6 are done (plan Tasks 1-12, last commit "Task 12"), followed by a calibration pass (floor, rating, partners, plan families, builder diversity; `docs/HANDOVER.md` "After the calibration pass"). **Next: stage 7, package and publish (plan Task 13). It waits for the owner's confirmation** before any packaging work that leads to a push: creating a public repository is outward-facing, and the data source's terms forbid scraping without written permission and allow personal, non-commercial use only (`docs/research/data-sources.md`, `meta-sources.md`). The owner's Fable quota is low: run agents on Opus and keep orchestrator turns few.
+Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a check of the running UI by the orchestrator (Hela brews into a legal Discard deck sharing 3 of 12 cards with the Discard archetype; Kahhori is refused for having only 2 partners, a known recall gap). Stage 7 (package and publish, plan Task 13) has not started: it waits for the owner's direct yes before the first push, because of the data source's terms.
 
 ## Owner's decisions (do not re-ask)
 
