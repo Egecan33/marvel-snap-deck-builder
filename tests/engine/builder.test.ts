@@ -43,12 +43,13 @@ describe('power floor (theory §4.5, §4.8)', () => {
     // recall gap) and plan detection misses whole families (Task 6), so no threshold on these signals
     // passes 95% of lists without letting random piles through (random piles never exceed 2 strong
     // pairs). This assert holds the level reached so a regression shows; it is not the target.
+    // Task 12: the reviewed Arthur Pendragon override (Excalibur's text) raised this to 98 of 200 (49%).
     const pass = meta.filter((r) => r.passed).length;
     console.log(`floor known-good: ${pass}/200 meta lists pass; known-bad: ${rand.filter((r) => r.passed).length}/50 random piles pass`);
     const fails = new Map<string, number>();
     for (const r of meta) for (const c of r.checks) if (!c.passed) fails.set(c.key, (fails.get(c.key) ?? 0) + 1);
     console.log(`meta lists failing each check: ${[...fails].map(([k, n]) => `${k} ${n}`).join(', ')}`);
-    expect(pass).toBeGreaterThanOrEqual(87);
+    expect(pass).toBeGreaterThanOrEqual(98);
     expect(rand.every((r) => !r.passed)).toBe(true);
   });
 

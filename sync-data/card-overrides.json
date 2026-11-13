@@ -543,6 +543,39 @@
      ]
     }
    ]
+  },
+  "ArthurPendragon": {
+   "reviewedText": "On Reveal: Pull Excalibur free to here.",
+   "note": "Task 12 calibration: the card's value is the Excalibur it brings, whose synced token row reads \"Ongoing: Your 4-Cost or more cards have +2 Power.\" (Card.tokens = [\"Excalibur\"]). The parser reads only the summon, so Arthur had no link to the 4-Cost cards it is played with and 'Make it stronger' cut it from Arthur lists. The second clause carries Excalibur's text; it applies while Excalibur is in play.",
+   "clauses": [
+    {
+     "trigger": "on_reveal",
+     "effects": [
+      {
+       "kind": "summon",
+       "target": "own_here",
+       "magnitude": null,
+       "selectors": []
+      }
+     ],
+     "text": "Pull Excalibur free to here."
+    },
+    {
+     "trigger": "ongoing",
+     "effects": [
+      {
+       "kind": "buff",
+       "target": "own_anywhere",
+       "magnitude": 2,
+       "selectors": []
+      }
+     ],
+     "text": "Your 4-Cost or more cards have +2 Power.",
+     "notes": [
+      "Excalibur's text (token row), not Arthur's own"
+     ]
+    }
+   ]
   }
  }
 }

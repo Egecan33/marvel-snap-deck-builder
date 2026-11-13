@@ -44,6 +44,15 @@ describe('generateLines on the six reference decks', () => {
     }
   });
 
+  it('never says odds "fall" to the same value (Task 12 review: "falls from 100% to 100%")', () => {
+    for (const r of Object.values(reports)) {
+      for (const l of r.assembly) {
+        const m = /falls from (\S+) to (\S+) /.exec(l.text);
+        if (m) expect(Number.parseFloat(m[2]!), l.text).toBeLessThan(Number.parseFloat(m[1]!));
+      }
+    }
+  });
+
   it('gives decks of different archetypes almost no shared line texts', () => {
     const names = Object.keys(reports);
     const rows: string[] = [];

@@ -4,6 +4,7 @@
  * meta share each tech role answers. HEURISTIC where noted; every result names its cards.
  */
 import { AXIS_BY_ID } from '../features/axes';
+import { TECH_ROLES } from '../features/tech';
 import { compileAtom, detectPlans, matchesAny } from '../plans/detect';
 import type { AxisId, CardDb, CardEdge, Deck, Fix, PlanDef, TechRole } from '../types';
 
@@ -117,7 +118,38 @@ export function patternWords(pattern: string, side: 'e' | 'p'): string {
     if (def) return `${def.label.toLowerCase()} (${ax[2] === 'e' ? def.enablerRule : def.payoffRule})`;
   }
   void side;
-  return pattern.replaceAll('&', ' and ');
+  return pattern.split('&').map((a) => atomWords(a.trim())).join(' and ');
+}
+
+// Words for the trait atoms plans.json uses (display only; matching uses the atoms themselves).
+// Task 12 review: a fix read "a card with summon_own". Unknown atoms fall back to their id with spaces.
+const ATOM_WORDS: Record<string, string> = {
+  activate: 'an Activate ability', afflict_enemy: 'an effect that afflicts enemy cards', buff_self: 'a way to grow its own Power',
+  destroy_own: 'an effect that destroys your own cards', draw_player: 'card draw', energy_gain_player: 'an Energy gain',
+  energy_max_player: 'a Max Energy gain', gen_deck_deck: 'an effect that adds cards to your deck', horde_own: 'a Zombie Horde effect',
+  loc_change_location: 'an effect that changes a location', no_ability: 'no ability', on_reveal: 'an On Reveal',
+  power_double_own: 'an effect that doubles your cards\' Power', power_double_self: 'an effect that doubles its own Power',
+  power_steal_enemy: 'a Power steal', power_steal_enemy_hand: 'a Power steal from the enemy hand',
+  repeat_on_reveal_own: 'an effect that repeats your On Reveals', reveal_delay_own: 'an effect that delays your reveals',
+  summon_own: 'an effect that puts a card into play on your side', total_power_location: 'an effect that counts total Power at a location',
+  'cond:alone_here': 'a condition on being alone at its location', 'cond:turn_number': 'a condition on the turn number',
+  'scale:distinct_costs': 'scaling with different Costs', 'scale:opp_deck_size': "scaling with the opponent's deck size",
+  'scale:opp_hand_size': "scaling with the opponent's hand size", 'creates:no_ability': 'a created card with no ability',
+};
+
+function atomWords(atom: string): string {
+  if (ATOM_WORDS[atom]) return ATOM_WORDS[atom]!;
+  const range = /^(cost|power):(-?\d+)-(-?\d+)$/.exec(atom);
+  if (range) {
+    const [, what, lo, hi] = range;
+    const label = what === 'cost' ? 'Cost' : 'Power';
+    return Number(hi) >= 99 ? `${label} ${lo} or more` : `${label} ${lo}-${hi}`;
+  }
+  if (atom.startsWith('role:')) {
+    const role = TECH_ROLES.find((r) => r.id === atom.slice(5));
+    return `the ${role ? role.label.toLowerCase() : atom.slice(5)} tech role`;
+  }
+  return atom.replace(/^[a-z]+:/, '').replaceAll('_', ' ');
 }
 
 export interface NearPlan { plan: PlanDef; enablers: string[]; payoffs: string[]; missing: 'enabler' | 'payoff'; need: number }

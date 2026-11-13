@@ -53,6 +53,12 @@ async function call<T>(method: string, url: string, body?: unknown, signal?: Abo
     const message = (data as { error?: unknown } | null)?.error;
     throw new ApiError(typeof message === 'string' ? message : `${method} ${url} failed (${res.status})`, res.status);
   }
+  // An abort while the body was being read leaves no data: report it as the abort it is, so
+  // callers that ignore aborts do not read fields of null (seen in the Task 12 e2e run).
+  if (data === null) {
+    if (signal?.aborted) throw new DOMException('The request was aborted.', 'AbortError');
+    throw new ApiError(`${method} ${url} returned no data (${res.status})`, res.status);
+  }
   return data as T;
 }
 

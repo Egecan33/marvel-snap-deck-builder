@@ -2,7 +2,7 @@
 
 This file is the single place a new session reads to continue the build if the previous one was cut off. Update it at every stage boundary, in the same commit as the stage's work.
 
-Last updated: 2026-11-13. Resumed at the owner's request. Stages 0-2 done. A single chained workflow on Opus agents is running plan Tasks 3-12 in order (engine, adversarial review and fixes, API, UI, end to end); each task commits and appends to `docs/HANDOVER.md`. If it was cut off: run `git log --oneline` and restart at the first task without a commit. Stage 7 (package and publish) waits for the owner's confirmation before the first push. The owner's Fable quota is low: run agents on Opus and keep orchestrator turns few.
+Last updated: 2026-11-13. Stages 0-6 are done (plan Tasks 1-12, last commit "Task 12"). **Next: stage 7, package and publish (plan Task 13). It waits for the owner's confirmation** before any packaging work that leads to a push: creating a public repository is outward-facing, and the data source's terms forbid scraping without written permission and allow personal, non-commercial use only (`docs/research/data-sources.md`, `meta-sources.md`). The owner's Fable quota is low: run agents on Opus and keep orchestrator turns few.
 
 ## Owner's decisions (do not re-ask)
 
@@ -26,9 +26,9 @@ Last updated: 2026-11-13. Resumed at the owner's request. Stages 0-2 done. A sin
 | 2 | Foundation and data: plan Tasks 1-2 | done (scaffold, sync steps, fixtures; `pnpm sync` was run for build 58.15.3) |
 | 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | done (review fixed 2026-11-13: held-out strong-edge precision 82.5% strict / 100% lenient on 40; clause audit 124/125 parser, 125/125 with overrides; floor 87/200 meta lists, 0/50 random piles; brews 10/20; 404 tests) |
 | 4 | API and UI: plan Tasks 10-11 | done (API: 16 route tests; UI: all screens of spec §16, driven in a real browser at 1440x900 with screenshots, images load from data/images; suite 433 tests) |
-| 5 | End-to-end tests and calibration: plan Task 12 | not started |
-| 6 | Final review by driving the real UI and looking at screenshots | not started |
-| 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | not started; only after stages 2-6 are done |
+| 5 | End-to-end tests and calibration: plan Task 12 | done (5 Playwright flows of spec §17 pass on a copy of the real synced database; `src/ingest/calibrate.ts` read-out; fixes at the source: Arthur Pendragon override, two dropped turn counters, edge-label and fix wording; suite 437 tests) |
+| 6 | Final review by driving the real UI and looking at screenshots | done (7 off-meta build-arounds brewed in the UI and read; screenshots in `docs/screenshots/`; UI fixes: picks layout, lock/score overlap, abort race, icon) |
+| 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | **next; waiting for the owner's confirmation** |
 
 ## Stage 0 detail
 
@@ -41,6 +41,21 @@ Expected files in `docs/research/`; a file is verified when it ends with a `## V
 | `meta-sources.md` | meta decklists, play-rate and win-rate data (tested), scraping recipe |
 | `mechanics.md` | ability and keyword glossary, text patterns measured on the real pool, enabler/payoff axes, anti-synergies |
 | `deck-theory-and-creativity.md` | what a working deck needs, energy and draw maths, win conditions, tech, and the measurable creativity mechanisms |
+
+## Known limitations
+
+Measured on the fixture (511 released cards, 300 meta lists) and the real database (build 58.15.3, meta period 137), 2026-11-13.
+
+- **Rating not calibrated.** 91 of the 200 most-played lists rate 60+ (target 95%); 41 of 50 random piles rate under 40 (target all). The rating is labelled heuristic and uncalibrated everywhere it is shown. It overrates move and destroy packages: tuned builds around 4 of the 5 top archetype cores turn into "Destroy scaling" decks.
+- **Power floor below target.** 98 of 200 meta lists pass (target 95%); 0 of 50 random piles pass. Meta lists fail mostly on strong pairs (71) and plan detection (38).
+- **Plan families missing** for big meta archetypes: created cards, skills, "spend all your Energy" (Vampire Killmonger, Merlin). "Make it stronger" can therefore cut Vampire Killmonger from a Zombie list; lock a card to keep it.
+- **Interaction recall.** Strong edges favour precision (82.5% strict on a held-out 40). Many real partners score 0.4-0.49 and do not count, so 10 of 20 random off-meta build-arounds are refused (Thor, Namora, Okoye, Surtur, ...). In the real-database read-out 7 of 10 off-meta cards were refused, 6 of them for too few strong partners (White Queen, Uatu, Strong Guy, The Fallen One, Spider-Man Noir, Doctor Octopus) and Punisher on the ablation check.
+- **Same core in many brews.** The move package (Sparky, Hercules, Nocturne, Redwing, Spider-Man 2099, Web Sling) is dense and well rated, so it shows up around unrelated build-arounds (Polaris, Selene, Bruce Banner). Results 2-6 usually include a deck on the card's own plan.
+- **Field advice is generic.** Lines against each archetype repeat "race it with your payoffs" unless a tech card applies; no win-rate matrix.
+- **Energy model** ignores board space and generated cards; turn lines group plays by cost and do not say how many.
+- **Parser gaps** listed in `docs/HANDOVER.md` (Task 4 and engine review): about 2% of cards with a known wrong target, Mysterio, Frankie Raye, Sandstorm lossy.
+- **Not implemented:** stale-stats and recently-changed warnings (no balance-change log), win-rate prediction (non-goal), phone layout (non-goal). The game-state-file collection import was not tested against a real file.
+- **Data terms.** The data source allows personal, non-commercial use and forbids scraping without permission; fine for a local tool, to be weighed before publishing (stage 7).
 
 ## Resume
 

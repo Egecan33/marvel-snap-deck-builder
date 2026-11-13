@@ -146,7 +146,7 @@ function assemblyLines(v: View): Line[] {
         : `no other ${side} in the deck, so the plan stops`;
       out.push({
         kind: 'assembly',
-        text: `Without ${v.name(id)} (${side}): ${m.name} falls from ${pct(m.assembly)} to ${pct(after)} by turn ${m.keyTurn}; ${rest}`,
+        text: `Without ${v.name(id)} (${side}): ${m.name} ${pct(after) === pct(m.assembly) ? `stays at ${pct(after)}` : `${after < m.assembly ? 'falls' : 'rises'} from ${pct(m.assembly)} to ${pct(after)}`} by turn ${m.keyTurn}; ${rest}`,
         cardIds: [id, ...subs], probability: after, provenance: 'derived',
         reason: `Same draw maths with ${v.name(id)} removed from the deck.`,
       });

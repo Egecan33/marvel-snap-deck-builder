@@ -441,10 +441,10 @@ Routes (JSON): `GET /api/status` (counts, sync state, meta info, coverage report
 
 ### Task 12: End-to-end, calibration, review
 
-- [ ] Playwright against the real synced DB: the five flows of spec §17.
-- [ ] `pnpm tsx src/ingest/calibrate.ts`: for 10 off-meta build-around cards print the brews (cards, rating, novelty, plan, floor, pick reasons) and for 5 top archetypes the tuned build; read them and fix what is plainly wrong (a brew whose "interaction" is not real is a parser or network bug: fix it there and add the pair to the audit fixture).
-- [ ] Whole-branch review against the spec's goals and anti-goals by driving the real UI and reading screenshots; fix findings; `pnpm typecheck && pnpm test && pnpm e2e`.
-- [ ] `README.md`: real getting-started, screenshots, what is measured and what is heuristic. `docs/STATUS.md` final.
+- [x] Playwright against the real synced DB: the five flows of spec §17.
+- [x] `pnpm tsx src/ingest/calibrate.ts`: for 10 off-meta build-around cards print the brews (cards, rating, novelty, plan, floor, pick reasons) and for 5 top archetypes the tuned build; read them and fix what is plainly wrong (a brew whose "interaction" is not real is a parser or network bug: fix it there and add the pair to the audit fixture).
+- [x] Whole-branch review against the spec's goals and anti-goals by driving the real UI and reading screenshots; fix findings; `pnpm typecheck && pnpm test && pnpm e2e`.
+- [x] `README.md`: real getting-started, screenshots, what is measured and what is heuristic. `docs/STATUS.md` final.
 
 ---
 

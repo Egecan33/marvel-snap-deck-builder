@@ -94,6 +94,8 @@ describe('dropped numbers in card text', () => {
     expect(findTextHoles([c('<b>On Reveal:</b> Add a random -Cost or more card to your hand.')])).toEqual(['X']);
     expect(findTextHoles([c('<sprite=4> <b>Objective:</b> Do it <sprite=0> Win. <color=#d040ff>(/6)</color>')])).toEqual(['X']);
     expect(findTextHoles([c('Give +2 Power for each turn. (+)')])).toEqual(['X']);
+    expect(findTextHoles([c("<b>Ongoing:</b> +1 Power for each turn you've discarded a card. <i>( turns.)</i>")])).toEqual(['X']);
+    expect(findTextHoles([c("<b>Ongoing:</b> +1 Power for each turn you've discarded a card. <i>(0 turns.)</i>")])).toEqual([]);
     expect(findTextHoles([c('<sprite=4> <b>Objective:</b> Do it <sprite=0> Win. <color=#d040ff>(4/6)</color>')])).toEqual([]);
     expect(findTextHoles([c('<b>On Reveal</b>: +1 Power for each \ncard in your hand.  \n<b>Quickdraw</b>: Give your hand +1 Power.')])).toEqual([]);
     expect(findTextHoles([c('<b>On Reveal:</b> Give a card -3 Cost.')])).toEqual([]);

@@ -296,7 +296,9 @@ export function axisEdges(nodes: readonly Node[]): RawEdge[] {
         out.push({
           a: A.card.defId, b: B.card.defId, rule: `axis:${axis.id}`, family: FAMILY[axis.id] ?? `axis:${axis.id}`,
           kind: 'synergy', strength: pairStrength(axis.id, A, B, axis.weight), heuristic, here: hereScoped(axis.id, A, B),
-          label: `${A.card.name} is a ${axis.label.toLowerCase()} enabler; ${B.card.name} pays it off${heuristic ? ' (heuristic)' : ''}`,
+          // Axis labels are noun or verb phrases ("Move your cards", "Unspent Energy"), so the
+          // label quotes the axis instead of using it as an adjective ("a unspent energy enabler").
+          label: `${A.card.name} enables the ${axis.label} axis; ${B.card.name} pays it off${heuristic ? ' (heuristic)' : ''}`,
           detail: `${quote(A.card, ac?.text)} / ${quote(B.card)}`,
         });
       }

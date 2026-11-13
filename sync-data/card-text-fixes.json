@@ -24,6 +24,11 @@
     "text": "Objective: Have 3 cards that are 4-Cost or more in play -> Afflict the highest-Cost enemy card with -6 Power. (0/3)",
     "source": "attributes.data.ObjectiveProgress = 0"
   },
+  "ColonelAmerica": {
+    "rawText": "<b>Ongoing:</b> Your other cards here have +1 Power for each turn you've discarded a card. <i>( turns.)</i>",
+    "text": "Ongoing: Your other cards here have +1 Power for each turn you've discarded a card. (0 turns.)",
+    "source": "attributes.data.ModifiedCardCount = 0 (counter; found in Task 12 calibration)"
+  },
   "EnSabahNur": {
     "rawText": "<sprite=4> <b>Objective:</b> Have a full front row at each location <sprite=0> Transform into Apocalypse, Celestials' Chosen. <color=#d040ff>(/6)</color>",
     "text": "Objective: Have a full front row at each location -> Transform into Apocalypse, Celestials' Chosen. (0/6)",
@@ -93,6 +98,11 @@
     "rawText": "<b>On Reveal:</b> Set the top character of your deck's Power to 8. If your other cards in play cost exactly 8 total, add it here. (/8)",
     "text": "On Reveal: Set the top character of your deck's Power to 8. If your other cards in play cost exactly 8 total, add it here. (0/8)",
     "source": "attributes.data.TargetCardCost_2 = 0"
+  },
+  "StarlordMasterOfTheSun": {
+    "rawText": "<b>On Reveal:</b> Next turn, you get +1 Energy for each turn you've ended with unspent Energy. <i>( turns.)</i>",
+    "text": "On Reveal: Next turn, you get +1 Energy for each turn you've ended with unspent Energy. (0 turns.)",
+    "source": "attributes.data.ModifiedCardCount = 0 (counter; found in Task 12 calibration)"
   },
   "StormHorseman": {
     "rawText": "<sprite=4> <b>Objective:</b> End 2 turns in a row with unspent Energy <sprite=0> Give your other cards here and in your hand +2 Power. <color=#d040ff>(/2)</color>",

@@ -135,7 +135,7 @@ export function PlanPanel({ a, lookup, onOpen }: { a: AnalyzeResponse; lookup: L
           {p.foldsTo.length > 0 && (
             <ul className="mt-1 text-[0.82rem] text-muted">
               {p.foldsTo.map((f) => (
-                <li key={f.role}>Folds to {techLabel(f.role).toLowerCase()}: {names(lookup, f.cards) || 'cards of that role'}{f.fieldShare !== null && <> , in {pct(f.fieldShare)} of games <Prov p="measured" /></>}</li>
+                <li key={f.role}>Folds to {techLabel(f.role).toLowerCase()}: {names(lookup, f.cards) || 'cards of that role'}{f.fieldShare !== null && <>, in {pct(f.fieldShare)} of games <Prov p="measured" /></>}</li>
               ))}
             </ul>
           )}

@@ -43,8 +43,9 @@ export function textFixFor(defId: string, description: string | null | undefined
   return fix && typeof fix.text === 'string' && fix.rawText === description ? fix.text : null;
 }
 
-// Counters and values the source leaves empty: "(/6)", "(+)", "a random -Cost or more card".
-const HOLES_IN_TEXT = [/\(\s*\/\s*\d+\s*\)/, /\(\s*[+-]\s*\)/, /(^|[\s(])-Cost\b/];
+// Counters and values the source leaves empty: "(/6)", "(+)", "a random -Cost or more card",
+// "( turns.)" (a turn counter, found in the Task 12 calibration read-out).
+const HOLES_IN_TEXT = [/\(\s*\/\s*\d+\s*\)/, /\(\s*[+-]\s*\)/, /(^|[\s(])-Cost\b/, /\(\s+[a-z]/];
 // Seen only before whitespace is collapsed: "cost  from your deck", "It costs ." A line break
 // next to a space is layout, not a hole, so each source line is checked on its own.
 const HOLES_IN_SOURCE = [/\S {2,}\S/, /[A-Za-z] [.,](\s|$)/];

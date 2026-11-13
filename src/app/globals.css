@@ -251,8 +251,9 @@ textarea.field {
 }
 
 .tile-actions {
+  /* Above the score badge (bottom 10%): side by side they overlapped on narrow deck tiles (Task 12 review). */
   position: absolute;
-  bottom: 10%;
+  bottom: 27%;
   right: 20%;
   display: flex;
   gap: 4px;

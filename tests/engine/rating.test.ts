@@ -4,6 +4,7 @@ import { parseDecklist } from '@/engine/io/decklist';
 import { mulberry32 } from '@/engine/maths/rng';
 import { detectPlans } from '@/engine/plans/detect';
 import { MAX_FIXES, RATING_WEIGHTS } from '@/engine/rating/constants';
+import { patternWords } from '@/engine/rating/deck';
 import { rateDeck } from '@/engine/rating/rate';
 import type { CardDb, Deck, DeckRating } from '@/engine/types';
 import { deckNames, deckText, fixtureDb } from '../helpers/fixture-db';
@@ -31,7 +32,8 @@ describe('rating calibration (spec §12)', () => {
   // only about three quarters of the lists above every random pile: plan detection misses whole meta
   // families (Merlin / Vampire Killmonger, Arthur, Galacti, tech piles; HANDOVER Task 6 gaps) and
   // broad families (move, extra-energy, shuffle-in) fire on random piles. These asserts hold the level
-  // actually reached so a regression shows; they are not the target.
+  // actually reached so a regression shows; they are not the target. Task 12: 91 of 200 (45.5%) after
+  // the reviewed Arthur Pendragon override; random piles unchanged (41 of 50 under 40).
   const meta = top200.map((ids) => rateDeck(deckOf(ids), ctx));
   const rand = randomPiles(20261113, 50).map((ids) => rateDeck(deckOf(ids), ctx));
 
@@ -39,7 +41,8 @@ describe('rating calibration (spec §12)', () => {
     const pass = meta.filter((r) => r.rating >= 60).length;
     const under = rand.filter((r) => r.rating < 40).length;
     const mean = (xs: DeckRating[]) => xs.reduce((s, r) => s + r.rating, 0) / xs.length;
-    expect(pass).toBeGreaterThanOrEqual(88);
+    console.log(`rating calibration: ${pass}/200 meta lists rate 60+, ${under}/50 random piles under 40, mean gap ${(mean(meta) - mean(rand)).toFixed(1)}`);
+    expect(pass).toBeGreaterThanOrEqual(91);
     expect(under).toBeGreaterThanOrEqual(41);
     expect(mean(meta) - mean(rand)).toBeGreaterThanOrEqual(15);
     for (const r of [...meta, ...rand]) {
@@ -113,5 +116,20 @@ describe('rateDeck', () => {
     const r = rateDeck(deckOf(top200[0]!), { db: bare, owned: null });
     expect(Number.isFinite(r.rating)).toBe(true);
     expect(subOf(r, 'resilience').fixes[0]!.text).toMatch(/No meta snapshot/);
+  });
+});
+
+describe('fix wording (Task 12 review)', () => {
+  it('describes every plans.json pattern in words, never a raw trait id', () => {
+    for (const plan of db.plans()) {
+      for (const [side, pats] of [['e', plan.enablerTraits], ['p', plan.payoffTraits]] as const) {
+        for (const pat of pats) {
+          const w = patternWords(pat, side);
+          expect(w, `${plan.id}: ${pat}`).not.toMatch(/_|\b[a-z]+:[a-z0-9]/);
+        }
+      }
+    }
+    expect(patternWords('summon_own', 'e')).toBe('an effect that puts a card into play on your side');
+    expect(patternWords('cost:3-4&power:5-99', 'p')).toBe('Cost 3-4 and Power 5 or more');
   });
 });

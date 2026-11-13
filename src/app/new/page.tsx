@@ -325,8 +325,8 @@ function ResultCard({ r, i, lookup, onOpen, onCard, onEvidence }: {
           <p className="mb-3 max-w-[90ch] text-[0.85rem] text-muted">{r.why}</p>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-3 text-[0.82rem]">
             {r.picks.map((p) => (
-              <li key={p.defId} className="grid grid-cols-[56px_1fr] gap-2">
-                <button type="button" onClick={() => onCard(p.defId)} aria-label={lookup[p.defId]?.name ?? p.defId}><CardArt id={p.defId} card={lookup[p.defId]} /></button>
+              <li key={p.defId} className="grid grid-cols-[56px_1fr] items-start gap-2">
+                <button type="button" className="self-start" onClick={() => onCard(p.defId)} aria-label={lookup[p.defId]?.name ?? p.defId}><CardArt id={p.defId} card={lookup[p.defId]} /></button>
                 <div className="space-y-0.5">
                   <p><b>{lookup[p.defId]?.name ?? p.defId}.</b> {p.interaction}</p>
                   <p className="text-muted">{p.unusual}</p>
