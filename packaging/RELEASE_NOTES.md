@@ -10,7 +10,7 @@ Snap Forge builds, rates and improves Marvel Snap decks on your own computer, wi
 2. The app opens on its Data page. Press **Sync everything**: card data, meta lists and about 600 card images, one image per second (about 10-15 minutes). No card data or images are included in the download.
 3. The builds are not signed. macOS may say the developer is unidentified: right-click the file, choose Open, then Open again. Windows SmartScreen: More info, then Run anyway.
 
-The macOS Apple Silicon build was started, synced and used on a Mac before release. The macOS Intel and Windows builds are built and unit-tested by CI only; they were not run on an Intel Mac or a Windows machine.
+A macOS Apple Silicon bundle built the same way was unzipped, started, synced and used to brew decks on a Mac before release. The macOS Intel and Windows builds are built and unit-tested by CI only; they were not run on an Intel Mac or a Windows machine. The builds are unsigned.
 
 Your data is kept in the `data` folder inside the unzipped folder. To update, download the new zip and move the `data` folder across. See `READ ME FIRST.txt` in the zip.
 

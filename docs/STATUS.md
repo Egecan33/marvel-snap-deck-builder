@@ -2,7 +2,7 @@
 
 This file is the single place a new session reads to continue the build if the previous one was cut off. Update it at every stage boundary, in the same commit as the stage's work.
 
-Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a check of the running UI by the orchestrator (Hela brews into a legal Discard deck sharing 3 of 12 cards with the Discard archetype; Kahhori is refused for having only 2 partners, a known recall gap). Stage 7 (package and publish, plan Task 13) has not started: it waits for the owner's direct yes before the first push, because of the data source's terms.
+Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a check of the running UI by the orchestrator (Hela brews into a legal Discard deck sharing 3 of 12 cards with the Discard archetype; Kahhori is refused for having only 2 partners, a known recall gap). Stage 7 (package and publish, plan Task 13): the owner said yes to a public repository on 2026-11-13; see the stage table for where it stands.
 
 ## Owner's decisions (do not re-ask)
 
@@ -16,6 +16,7 @@ Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a ch
 - Cost discipline: about five research topics with one fact-check pass, no extra research rounds, each workflow under about 8 agents, stages as separate workflows, commit before every stage boundary.
 - Owner, 2026-11-12 (relayed by the parent session): "package both like the Magic one and put them on GitHub, with everything". Final stage, plan Task 13. Until then: local repo, commits per task, no push.
 - Do not touch `~/github_repositories/riftbound-forge` or any other repository.
+- Owner, 2026-11-13 (relayed by the parent session): a direct, explicit yes to publishing the repository **publicly** on GitHub, knowing that Untapped.gg's terms forbid scraping without permission and allow personal, non-commercial use only. This satisfies the confirmation step of plan Task 13. The README states the terms; the bundles ship no card data or images, and each user runs the slow manual sync themselves.
 
 ## Stages
 
@@ -28,7 +29,7 @@ Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a ch
 | 4 | API and UI: plan Tasks 10-11 | done (API: 16 route tests; UI: all screens of spec §16, driven in a real browser at 1440x900 with screenshots, images load from data/images; suite 433 tests) |
 | 5 | End-to-end tests and calibration: plan Task 12 | done (5 Playwright flows of spec §17 pass on a copy of the real synced database; `src/ingest/calibrate.ts` read-out; fixes at the source: Arthur Pendragon override, two dropped turn counters, edge-label and fix wording; suite 437 tests) |
 | 6 | Final review by driving the real UI and looking at screenshots | done (7 off-meta build-arounds brewed in the UI and read; screenshots in `docs/screenshots/`; UI fixes: picks layout, lock/score overlap, abort race, icon) |
-| 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | **next; waiting for the owner's confirmation** |
+| 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | in progress: packaging done; local macOS arm64 bundle unzipped into a fresh folder, started with its starter, Data page opened, full sync from the packaged app (511 released cards, 620 images wanted, 598 downloaded, 22 tokens without art upstream, 12.5 min), brew around Morgan le Fay returned decks with images (rating 83, novelty 78, floor passed) |
 
 ## Stage 0 detail
 
@@ -58,7 +59,7 @@ Calibration pass (2026-11-13): numbers below are after it; before/after in `docs
 - **Energy model** ignores board space, generated cards and cost cuts from other cards (the main reason Arthur lists fail no-play-on-turn-3); turn lines group plays by cost and do not say how many.
 - **Parser gaps** listed in `docs/HANDOVER.md` (Task 4 and engine review): about 2% of cards with a known wrong target, Mysterio, Frankie Raye, Sandstorm lossy.
 - **Not implemented:** stale-stats and recently-changed warnings (no balance-change log), win-rate prediction (non-goal), phone layout (non-goal). The game-state-file collection import was not tested against a real file.
-- **Data terms.** The data source allows personal, non-commercial use and forbids scraping without permission; fine for a local tool, to be weighed before publishing (stage 7).
+- **Data terms.** The data source allows personal, non-commercial use and forbids scraping without permission; fine for a local tool. Weighed before publishing: the owner chose to publish (2026-11-13); the repository and downloads hold no card data or images, and the README states the terms.
 
 ## Resume
 
@@ -71,5 +72,5 @@ Read the plan, run `git log --oneline | head -20` to see which task commits exis
 - The research parser reads 96.5% of cards at token level but had the effect target wrong on 15% in a hand-check; plan Task 4 must reach 95% on a hand-verified audit fixture before the engine builds on it.
 - The current short deck-code format is implemented from a community library and tested by round trip, not yet against a code copied from the game.
 - Untapped's card text omits dynamic numbers in at least 24 released rows; `sync-data/card-text-fixes.json` supplies the reviewed full text (plan Task 2).
-- Untapped's parent company terms forbid scraping without written permission and allow personal, non-commercial use (wording in `data-sources.md` and `meta-sources.md`). The owner accepted scraping for a local personal tool; sync stays slow, low-volume and manual. Revisit before publishing the repo.
+- Untapped's parent company terms forbid scraping without written permission and allow personal, non-commercial use (wording in `data-sources.md` and `meta-sources.md`). The owner accepted scraping for a local personal tool; sync stays slow, low-volume and manual. Revisited before publishing: the owner said yes to a public repository on 2026-11-13.
 - Still unconfirmed: official wording for slot count, tie-break and priority; ban lists of every limited-time mode except the Sanctum Showdown lists on file.
