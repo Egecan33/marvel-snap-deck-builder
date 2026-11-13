@@ -14,11 +14,12 @@ import { mulberry32 } from '../maths/rng';
 import { corpusOf, coplay } from '../novelty/clusters';
 import { gemsFor } from '../novelty/gems';
 import { deckIds, nearestLists, noveltyOf } from '../novelty/novelty';
-import { detectPlans } from '../plans/detect';
+import { isPartner } from '../network/edges';
+import { detectPlans, lockedArchetypePlan } from '../plans/detect';
 import { edgeLabel, nameOf, names } from '../rating/deck';
 import { rateDeck } from '../rating/rate';
 import type { BrewResult, BuildOptions, BuildOutcome, CardDb, Deck, EngineContext, FloorReport, PickReason } from '../types';
-import { checkFloor, FLOOR, strongPartners, unmetConditions } from './floor';
+import { checkFloor, FLOOR, realPartners, unmetConditions } from './floor';
 import { allowed, candidatePool, DEFAULT_PROMPTS } from './pool';
 import { anneal, createSpace, greedy, offer, SEARCH, type Archive, type Candidate } from './search';
 
@@ -55,11 +56,11 @@ interface Verified { ids: string[]; cand: Candidate; floor: FloorReport; novelty
 /** Runs the search for one set of fixed cards. */
 interface Searched { verified: Verified[]; failures: Map<string, number>; seenFeasible: number; closest: { ids: string[]; floor: FloorReport; novelty: number | null } | null }
 
-function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: string[], c5: string[], poolIds: string[]): Searched {
+function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: string[], c5: string[], poolIds: string[], targetPlan: string | null = null): Searched {
   const db = ctx.db;
   const prompts = { ...DEFAULT_PROMPTS, ...(opts.prompts ?? {}) };
   const brew = opts.mode === 'brew';
-  const space = createSpace(db, poolIds, { mode: opts.mode, fixed, c5, maxShared: brew ? prompts.maxShared : null, wildcards: brew ? Math.max(0, prompts.wildcards) : 0 });
+  const space = createSpace(db, poolIds, { mode: opts.mode, fixed, c5, maxShared: brew ? prompts.maxShared : null, wildcards: brew ? Math.max(0, prompts.wildcards) : 0, targetPlan });
   const archive: Archive = { cells: new Map() };
   const fixedIdx = space.fixed;
 
@@ -84,12 +85,17 @@ function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: strin
 
   const chains = Math.max(2, Math.min(MAX_RESULTS, Math.max(1, Math.floor(opts.count || 1))) + 1);
   const occupied = new Set<string>();
+  const chainBests: number[][] = [];
   let bestRun: { deck: number[]; violations: number; F: number } | null = null;
   const rootSeed = Number.isFinite(opts.seed) ? Math.floor(opts.seed) : 0;
   for (let c = 0; c < chains; c++) {
     const startDeck = !brew && c > 0 && starts.length > 1 ? starts[1 + ((c - 1) % (starts.length - 1))]! : starts[0]!;
-    const best = anneal(space, startDeck, (rootSeed ^ (c * 0x9e3779b1)) >>> 0, Math.round(SEARCH.proposals * (c === 0 ? 1.4 : 1)), archive, occupied);
-    if (best.ev.violations <= 1e-9) occupied.add(best.ev.cell);
+    // Calibration pass: later chains also pay for sharing more than 12 - SEARCH.minDiff cards with an earlier chain's best deck.
+    const best = anneal(space, startDeck, (rootSeed ^ (c * 0x9e3779b1)) >>> 0, Math.round(SEARCH.proposals * (c === 0 ? 1.4 : 1)), archive, occupied, chainBests);
+    if (best.ev.violations <= 1e-9) {
+      occupied.add(best.ev.cell);
+      chainBests.push([...best.deck]);
+    }
     const F = space.objective(best.ev);
     if (!bestRun || best.ev.violations < bestRun.violations - 1e-9 || (Math.abs(best.ev.violations - bestRun.violations) <= 1e-9 && F > bestRun.F)) bestRun = { deck: [...best.deck], violations: best.ev.violations, F };
   }
@@ -104,6 +110,8 @@ function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: strin
   for (const [, list] of cells) {
     if (verified.length >= (brew ? want : Math.max(want, 3)) || budget <= 0) break;
     for (const cand of list) {
+      // Calibration pass: a result must differ from every earlier result by at least SEARCH.minDiff cards.
+      if (verified.some((v) => 12 - v.ids.filter((x) => cand.deck.some((i) => space.ids[i] === x)).length < SEARCH.minDiff)) continue;
       if (budget-- <= 0) break;
       const ids = cand.deck.map((i) => space.ids[i]!);
       const d = deckFrom(deck, ids, new Set(), opts.mode, '');
@@ -135,11 +143,11 @@ function search(deck: Deck, ctx: EngineContext, opts: BuildOptions, fixed: strin
   return { verified, failures, seenFeasible, closest };
 }
 
-/** Refusal text for a build-around card the prompts leave fewer than three strong partners. */
+/** Refusal text for a build-around card the prompts leave fewer than three real partners (strong, or 0.4+ text-backed). */
 function partnerRefusal(db: CardDb, card: string, allowedIds: ReadonlySet<string>): string | null {
-  const partners = strongPartners(db, card, [...allowedIds]);
+  const partners = realPartners(db, card, [...allowedIds]);
   if (partners.length >= FLOOR.buildAroundPartners!) return null;
-  return `${nameOf(db, card)} has ${partners.length} strong partner${partners.length === 1 ? '' : 's'} among the cards the prompts allow${partners.length ? ` (${names(db, partners)})` : ''}; a build-around card needs at least ${FLOOR.buildAroundPartners} (theory §4.5 C5). The interaction network is heuristic and favours precision, so a real partner can be missing.`;
+  return `${nameOf(db, card)} has ${partners.length} partner${partners.length === 1 ? '' : 's'} among the cards the prompts allow${partners.length ? ` (${names(db, partners)})` : ''}; a build-around card needs at least ${FLOOR.buildAroundPartners} (theory §4.5 C5; a partner is a strong edge, or 0.4 or more with a text-derived reason). The interaction network is heuristic, so a real partner can be missing.`;
 }
 
 export function build(deck: Deck, ctx: EngineContext, opts: BuildOptions): BuildOutcome {
@@ -180,11 +188,16 @@ export function build(deck: Deck, ctx: EngineContext, opts: BuildOptions): Build
     tries.push(locks);
   }
 
+  // Tuned around an archetype's core (calibration pass): keep that archetype's plan; fall back to a free search when nothing passes.
+  const target = brew ? null : lockedArchetypePlan(db, locks);
+  let kept: typeof target = null;
   let last: ReturnType<typeof search> | null = null;
   let lastFixed: string[] = locks;
   for (const fixed of tries) {
     const pool = candidatePool(fixed, deck, o, c);
-    const res = search(deck, c, o, fixed, c5, pool.ids);
+    let res = target ? search(deck, c, o, fixed, c5, pool.ids, target.planId) : null;
+    if (res && res.verified.length) kept = target;
+    else res = search(deck, c, o, fixed, c5, pool.ids);
     last = res;
     lastFixed = fixed;
     if (res.verified.length) break;
@@ -209,7 +222,9 @@ export function build(deck: Deck, ctx: EngineContext, opts: BuildOptions): Build
     const d = deckFrom(deck, ids, lockSet, o.mode, `${title}: ${plan ? plan.name : 'network package'}`);
     const rating = rateDeck(d, c).rating;
     const novelty = noveltyOf(d, c);
-    const why = whyText(db, d, plan, v, rating, novelty, locks, lastFixed, brew);
+    let why = whyText(db, d, plan, v, rating, novelty, locks, lastFixed, brew);
+    if (kept) why += ` Kept in ${plan?.name ?? kept.planId}, the plan of the ${kept.archetype} core you locked.`;
+    else if (target) why += ` No deck in the plan of the ${target.archetype} core passed the floor, so the search was free to change plan.`;
     return { deck: d, rating, novelty, floor: v.floor, plan, why, picks: explainPicks(d, c) };
   });
   return { results, refused: null };
@@ -232,12 +247,15 @@ function whyText(db: CardDb, d: Deck, plan: BrewResult['plan'], v: Verified, rat
   if (locks.length) parts.push(`Built around ${names(db, locks)}.`);
   else if (fixed.length) parts.push(`Surprise: started from the pair ${names(db, fixed)}.`);
   if (plan) parts.push(`Plan: ${plan.name}, ${names(db, plan.enablers)} feeding ${names(db, plan.payoffs)}, ${pct(plan.assembly)} assembly by turn ${plan.keyTurn} (exact odds over heuristic families).`);
-  parts.push(`${v.cand.ev.strong} strong pairs and ${v.cand.ev.linked} linked pairs of 66 (heuristic network); floor passed (${v.floor.checks.length} checks).`);
+  const coh = v.cand.ev;
+  parts.push(`${coh.strong} strong pairs and ${coh.linked} linked pairs of 66; cohesion ${coh.coh.toFixed(1)}, ${coh.cohMech.toFixed(1)} of it from the interaction network (heuristic)${coh.coh - coh.cohMech > 0.05 ? ` and ${(coh.coh - coh.cohMech).toFixed(1)} from co-play in the meta corpus (measured)` : ''}; floor passed (${v.floor.checks.length} checks).`);
   if (nov.band === 'unknown') parts.push('Novelty not claimed.');
   else parts.push(`Novelty ${nov.novelty} (${nov.band})${near ? `: shares at most ${near.shared} of 12 cards with a known list${near.archetype ? ` (${near.archetype})` : ''}` : ''}.`);
   if (nov.claimsWithheld) parts.push(nov.claimsWithheld);
-  // HEURISTIC and uncalibrated (HANDOVER "After Task 7"): the rating does not put meta lists and brews on one scale.
-  parts.push(`Rating ${rating} of 100 is heuristic and not calibrated against win rates; it does not say the deck is as strong as a meta list.`);
+  // HEURISTIC, tuned against meta lists and random piles but not calibrated against win rates (HANDOVER "After the calibration pass").
+  parts.push(brew
+    ? `Rating ${rating} of 100 is a heuristic construction check, not calibrated against win rates; a brew's pairs are unproven (little co-play in the meta corpus), so they earn at most half the synergy credit and the deck rates below a proven list built as well.`
+    : `Rating ${rating} of 100 is a heuristic construction check, not calibrated against win rates.`);
   if (!brew) parts.push('Tuned mode: ranked by the deck rating.');
   void d;
   return parts.join(' ');
@@ -294,8 +312,9 @@ export function explainPicks(deck: Deck, ctx: EngineContext): PickReason[] {
     const edges = db.edges(id)
       .filter((e) => e.a !== e.b && ids.includes(e.a === id ? e.b : e.a) && e.score > 0)
       .sort((x, y) => {
-        const lx = locked.has(x.a === id ? x.b : x.a) && x.strong ? 1 : 0;
-        const ly = locked.has(y.a === id ? y.b : y.a) && y.strong ? 1 : 0;
+        // A real partner of a locked card is named first (calibration pass: strong, or 0.4+ text-backed).
+        const lx = locked.has(x.a === id ? x.b : x.a) && isPartner(x) ? 1 : 0;
+        const ly = locked.has(y.a === id ? y.b : y.a) && isPartner(y) ? 1 : 0;
         return ly - lx || y.score - x.score || (x.a + x.b < y.a + y.b ? -1 : 1);
       });
     const best = edges[0];
@@ -305,7 +324,7 @@ export function explainPicks(deck: Deck, ctx: EngineContext): PickReason[] {
       partner = best.a === id ? best.b : best.a;
       const r = best.reasons.filter((x) => x.kind === 'synergy').sort((x, y) => y.value - x.value)[0];
       const others = edges.slice(1, 3).filter((e) => e.score >= FLOOR.linkedEdge!).map((e) => nameOf(db, e.a === id ? e.b : e.a));
-      interaction = `${c.name} + ${nameOf(db, partner)}: ${edgeLabel(best)}${best.strong ? ', strong' : ''} (pair score ${best.score.toFixed(2)}, heuristic). ${r?.detail ?? ''}${others.length ? ` Also works with ${others.join(' and ')}.` : ''}`.trim();
+      interaction = `${c.name} + ${nameOf(db, partner)}: ${edgeLabel(best)}${best.strong ? ', strong' : isPartner(best) ? ', partner' : ''} (pair score ${best.score.toFixed(2)}, heuristic). ${r?.detail ?? ''}${others.length ? ` Also works with ${others.join(' and ')}.` : ''}`.trim();
     } else {
       interaction = `${c.name} has no pair of ${FLOOR.linkedEdge} or more in this deck: it fills the ${c.cost}-Cost slot of the curve (${c.cost}/${c.power}).`;
     }

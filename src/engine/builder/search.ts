@@ -16,10 +16,12 @@ import { pAtLeastOne, pOneOfEach } from '../maths/hypergeo';
 import { mulberry32 } from '../maths/rng';
 import { coplay, corpusOf, rarity } from '../novelty/clusters';
 import { NOVELTY_WEIGHTS } from '../novelty/novelty';
-import { foldInfo, matchesAny, PLAN_THRESHOLD } from '../plans/detect';
-import { CONSISTENCY, PLAN, QUALITY, RATING_WEIGHTS, RESILIENCE, SYNERGY, COHERENCE } from '../rating/constants';
+import { gradedWeight, isPartner } from '../network/edges';
+import { ARCHETYPE_CORE, coreArchetypes, foldInfo, matchesAny, PLAN_THRESHOLD } from '../plans/detect';
+import { COHESION, CONSISTENCY, PLAN, QUALITY, RATING_WEIGHTS, RESILIENCE, SYNERGY, COHERENCE } from '../rating/constants';
+import { cappedAnti, cohesionBar, cohesionCredit, measuredPair } from '../rating/deck';
 import type { CardDb, PlanDef } from '../types';
-import { FLOOR } from './floor';
+import { FLOOR, statedNeeds } from './floor';
 
 /** Search budget and penalty weights (HEURISTIC; theory §4.5 gives 20,000 proposals, temperature 8 to 0.05). */
 export const SEARCH = {
@@ -34,6 +36,19 @@ export const SEARCH = {
   neighbourBias: 0.65,
   /** Candidates kept per archive cell before the exact check. */
   perCell: 5,
+  /** Calibration pass: results of one build differ by at least this many cards; later chains pay `overlapPenalty` per card shared beyond 12 - minDiff with an earlier chain's best deck. */
+  minDiff: 4,
+  overlapPenalty: 6,
+  /** Calibration pass (brew): a pair counts this much of its score in the synergy sum when neither card is a lock or tied to a lock
+   * (score 0.2+ or a real partner), so a dense package that ignores the build-around card (the move package) stops winning by default. */
+  unrelatedPairWeight: 0.35,
+  /** Calibration pass (brew): objective points per unit of a non-locked card's breadth above `hubFrom` (share of the released pool it
+   * has a pair of 0.2+ with). Aurora links to 74% of the pool and was picked around unrelated build-arounds. */
+  hubPenalty: 10,
+  hubFrom: 0.15,
+  /** Calibration pass (brew): objective points per card that is neither a lock nor tied to one (no pair of 0.2+, not a partner, not
+   * a piece of a plan family the lock belongs to). */
+  unrelatedCardPenalty: 6,
   /** Brew mode: the band a returned brew must reach (spec §13: 60+ is off-meta). */
   minNovelty: 60,
   /** Energy proxy: average effective cost range and cheap-card counts (theory §5: 2.33 is the least average
@@ -52,6 +67,11 @@ export function curveShape(avgCost: number): 'low' | 'mid' | 'high' {
 export interface Ev {
   n: number;
   syn: number;
+  /** Graded cohesion (rating/deck.ts cohesionOf) and its mechanical part. */
+  coh: number;
+  cohMech: number;
+  /** Shared core cards of the best matched archetype (plans/detect.ts archetypeCore), 0 when none. */
+  coreShared: number;
   antiSum: number;
   strong: number;
   linked: number;
@@ -66,6 +86,8 @@ export interface Ev {
   bestAsm: number;
   bestStrength: number;
   offPlan: number;
+  /** Off-plan cards outside the matched archetype core (rating coherence). */
+  offPlanCore: number;
   avgCost: number;
   avgEff: number;
   cheap2: number;
@@ -75,6 +97,12 @@ export interface Ev {
   gemBonus: number;
   /** Positive pair scores between fixed (build-around) cards and the rest. */
   lockSyn: number;
+  /** Brew: pair score sum with pairs unrelated to the locks down-weighted (SEARCH.unrelatedPairWeight). */
+  synRel: number;
+  /** Brew: summed breadth of the non-locked cards above SEARCH.hubFrom (hub damping). */
+  hubSum: number;
+  /** Brew: cards neither locked nor tied to a lock. */
+  unrelatedCards: number;
   /** C5 cards that are members of the primary plan. */
   locksInPlan: number;
   violations: number;
@@ -83,6 +111,8 @@ export interface Ev {
 
 export interface SpaceOptions {
   mode: 'brew' | 'tuned';
+  /** Tuned mode, calibration pass: plans.json id the primary plan must keep (the locked archetype core's plan), or null. */
+  targetPlan?: string | null;
   /** Cards the search never removes (locks and the surprise seed pair). */
   fixed: string[];
   /** Cards C5 applies to (brew mode locks). */
@@ -113,6 +143,10 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
   const score = new Float64Array(n * n);
   const anti = new Float64Array(n * n);
   const strongM = new Uint8Array(n * n);
+  const partnerM = new Uint8Array(n * n);
+  const cohM = new Float64Array(n * n);
+  const mechM = new Float64Array(n * n);
+  const measM = new Float64Array(n * n);
   const uM = new Float64Array(n * n);
   const gemM = new Float64Array(n * n);
   const q = new Float64Array(n);
@@ -141,6 +175,8 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
         score[x * n + y] = e.score;
         anti[x * n + y] = e.anti;
         strongM[x * n + y] = e.strong ? 1 : 0;
+        partnerM[x * n + y] = isPartner(e) ? 1 : 0;
+        mechM[x * n + y] = gradedWeight(e) * COHESION.mechFactor;
       }
       if (e.strong) {
         const ev = coplay(corpus, [e.a, e.b]);
@@ -151,6 +187,17 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
       }
     }
   }
+  // Cohesion weights: graded mechanical or measured co-play, whichever is larger (rating/deck.ts cohesionOf).
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    const me = measuredPair(db, ids[i]!, ids[j]!)?.value ?? 0;
+    measM[i * n + j] = measM[j * n + i] = me;
+    cohM[i * n + j] = cohM[j * n + i] = Math.max(mechM[i * n + j]!, me);
+  }
+  // Archetype cores (plans/detect.ts archetypeCore): for each pool card, the archetypes whose core holds it.
+  const archs = coreArchetypes(db);
+  const coreOf: number[][] = ids.map((id) => archs.map((a, k) => (a.topCards.slice(0, ARCHETYPE_CORE.size).includes(id) ? k : -1)).filter((k) => k >= 0));
+  const coreCount = new Int32Array(archs.length);
+  const coreSize = archs.map((a) => Math.min(ARCHETYPE_CORE.size, a.topCards.length));
   const neighbours: number[][] = [];
   for (let i = 0; i < n; i++) {
     const row: number[] = [];
@@ -223,9 +270,42 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     return out;
   }
 
+  const bar = cohesionBar(db);
   const fixed = opts.fixed.map((id) => index.get(id)).filter((i): i is number => i !== undefined);
   const c5 = opts.c5.map((id) => index.get(id)).filter((i): i is number => i !== undefined);
   const fixedSet = new Set(fixed);
+  // Lock relevance (brew): 1 for a lock, a card tied to a lock (pair of 0.2+ or a partner) or a card on a plan family the lock is a
+  // piece of (a co-enabler such as Spider-Man 2099 beside Lasher); else SEARCH.unrelatedPairWeight.
+  const rel = new Float64Array(n).fill(1);
+  if (opts.mode === 'brew' && fixed.length) {
+    // A side matched by printed stats alone (put-into-play payoffs: any 3-4 Cost card with 5+ Power) does not tie a card to the lock.
+    const statOnly = (pats: readonly string[]): boolean => pats.length > 0 && pats.every((pt) => pt.split('&').every((a) => /^(cost|power):/.test(a.trim())));
+    const lockPlans = plans.filter((p) => fixed.some((f) => p.role[f]! > 0));
+    const onLockPlan = (i: number): boolean => lockPlans.some((p) => {
+      const r = p.role[i]!;
+      return ((r & 1) !== 0 && !statOnly(p.def.enablerTraits)) || ((r & 2) !== 0 && !statOnly(p.def.payoffTraits));
+    });
+    for (let i = 0; i < n; i++) {
+      if (fixedSet.has(i)) continue;
+      const tied = fixed.some((f) => score[i * n + f]! >= FLOOR.linkedEdge! || partnerM[i * n + f]) || onLockPlan(i);
+      rel[i] = tied ? 1 : SEARCH.unrelatedPairWeight;
+    }
+  }
+  // Breadth (brew hub damping): share of the released pool each card has a pair of 0.2+ with.
+  const hub = new Float64Array(n);
+  if (opts.mode === 'brew') {
+    const pool = Math.max(1, db.released().length - 1);
+    for (let i = 0; i < n; i++) {
+      if (fixedSet.has(i)) continue;
+      let k = 0;
+      for (const e of db.edges(ids[i]!)) if (e.a !== e.b && e.score >= FLOOR.linkedEdge!) k++;
+      hub[i] = Math.max(0, k / pool - SEARCH.hubFrom);
+    }
+  }
+  // Stated needs (floor.ts statedNeeds): per card, the axis groups another deck card must enable.
+  const needs: string[][][] = ids.map((id) => statedNeeds(db, id).map((nd) => nd.anyOf));
+  const enAxes: Set<string>[] = ids.map((id) => new Set(Object.entries(db.features(id)?.axes ?? {}).filter(([, v]) => v.e > 0).map(([k]) => k)));
+  const targetK = opts.targetPlan ? plans.findIndex((p) => p.def.id === opts.targetPlan) : -1;
   const listCount = new Int32Array(hasMeta ? meta.lists().length : 0);
   const touched: number[] = [];
 
@@ -240,42 +320,47 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     return pairs ? linked / pairs : 0;
   }
 
-  /** rate.ts synergy sub-score value of `deck` without card `skip` (-1: none); see floor.ts synergyValue. */
+  /** floor.ts synergyValue (uncapped synergy sub-score value) of `deck` without card `skip` (-1: none). */
   function synergyValue(deck: readonly number[], skip: number): number {
     const ids = skip < 0 ? deck : deck.filter((i) => i !== skip);
     const m = ids.length;
-    let syn = 0;
-    let strong = 0;
-    let antiSum = 0;
+    let coh = 0;
+    let mech = 0;
+    const antiEdges: [number, number, number][] = [];
     const link = new Uint8Array(m);
     for (let x = 0; x < m; x++) for (let y = x + 1; y < m; y++) {
       const a = ids[x]!;
       const b = ids[y]!;
-      const sc = score[a * n + b]!;
-      if (sc > 0) syn += sc;
-      if (anti[a * n + b]! > 0) antiSum += anti[a * n + b]!;
-      if (strongM[a * n + b]) strong++;
-      if (sc >= SYNERGY.weakEdge) link[x] = link[y] = 1;
+      const w = cohM[a * n + b]!;
+      if (w > 0) { coh += w; mech += mechM[a * n + b]!; link[x] = link[y] = 1; }
+      if (anti[a * n + b]! > 0) antiEdges.push([a, b, anti[a * n + b]!]);
     }
     const pairScale = m > 1 ? (m * (m - 1)) / 2 / 66 : 0;
     let orphans = 0;
     for (let x = 0; x < m; x++) if (!link[x]) orphans++;
-    const v = SYNERGY.wSum * Math.min(1, syn / Math.max(0.5, SYNERGY.sumTarget * pairScale)) + SYNERGY.wStrong * Math.min(1, strong / Math.max(1, SYNERGY.strongTarget * pairScale))
-      + SYNERGY.wConnected * (m ? 1 - orphans / m : 0) - SYNERGY.antiPenalty * antiSum;
+    // Uncapped (floor.ts synergyValue): the ablation check reads a card's whole cohesion contribution.
+    const v = SYNERGY.wCohesion * Math.min(1, coh / Math.max(0.5, COHESION.fullCredit * pairScale)) + SYNERGY.wConnected * (m ? 1 - orphans / m : 0) - SYNERGY.antiPenalty * cappedAnti(antiEdges);
     return Math.max(0, Math.min(1, v));
   }
 
   function evaluate(deck: readonly number[]): Ev {
     const m = deck.length;
     let syn = 0;
-    let antiSum = 0;
+    const antiEdges: [number, number, number][] = [];
     let strong = 0;
     let linkedPairs = 0;
+    let coh = 0;
+    let cohMech = 0;
     const deg = new Int32Array(m);
+    const pdeg = new Int32Array(m);
+    const sdeg = new Int32Array(m);
     const link = new Uint8Array(m);
+    const clink = new Uint8Array(m);
+    const tie = new Uint8Array(m);
     let pnNum = 0;
     let pnDen = 0;
     let lockSyn = 0;
+    let synRel = 0;
     const bestGem = new Float64Array(m);
     for (let x = 0; x < m; x++) {
       const a = deck[x]!;
@@ -285,12 +370,28 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
         if (s > 0) {
           syn += s;
           if (fixedSet.has(a) || fixedSet.has(b)) lockSyn += s;
+          synRel += s * Math.max(rel[a]!, rel[b]!);
         }
         const an = anti[a * n + b]!;
-        if (an > 0) antiSum += an;
+        if (an > 0) antiEdges.push([a, b, an]);
         if (s >= FLOOR.linkedEdge!) {
           linkedPairs++;
           link[x] = link[y] = 1;
+        }
+        const w = cohM[a * n + b]!;
+        if (w > 0) {
+          coh += w;
+          cohMech += mechM[a * n + b]!;
+          clink[x] = clink[y] = 1;
+          if (w >= COHESION.tiedWeight) tie[x] = tie[y] = 1;
+        }
+        if (partnerM[a * n + b]) {
+          pdeg[x]!++;
+          pdeg[y]!++;
+        }
+        if (partnerM[a * n + b] || measM[a * n + b]! >= 0.5) {
+          sdeg[x]!++;
+          sdeg[y]!++;
         }
         if (strongM[a * n + b]) {
           strong++;
@@ -304,6 +405,13 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
           if (g > bestGem[y]!) bestGem[y] = g;
         }
       }
+    }
+    const antiSum = cappedAnti(antiEdges);
+    let hubSum = 0;
+    let unrelatedCards = 0;
+    for (const i of deck) {
+      hubSum += hub[i]!;
+      if (rel[i]! < 1) unrelatedCards++;
     }
     // Novelty (novelty.ts formula, unrounded).
     let o1 = 0;
@@ -327,7 +435,7 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     for (let x = 0; x < m; x++) {
       const qq = q[deck[x]!]!;
       qSum += qq;
-      if (qq < FLOOR.cardQuality! && deg[x]! < FLOOR.waiverStrong!) weak++;
+      if (qq < FLOOR.cardQuality! && sdeg[x]! < FLOOR.waiverStrong!) weak++;
     }
     const meanQ = m ? qSum / m : 0;
 
@@ -337,17 +445,31 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     const pr = qualified[0];
     const se = qualified[1];
     const onPlan = new Set<number>([...(pr?.members ?? []), ...(se?.members ?? [])]);
+    // Archetype core (most shared cards, ties to the most-played archetype; at least ARCHETYPE_CORE.min).
+    let coreK = -1;
+    let coreShared = 0;
+    if (archs.length) {
+      for (const i of deck) for (const k of coreOf[i]!) coreCount[k]!++;
+      for (let k = 0; k < archs.length; k++) {
+        if (coreCount[k]! >= ARCHETYPE_CORE.min && coreCount[k]! > coreShared) { coreShared = coreCount[k]!; coreK = k; }
+      }
+      for (const i of deck) for (const k of coreOf[i]!) coreCount[k] = 0;
+    }
     let offPlan = 0;
     let loose = 0;
     let unlinked = 0;
     for (let x = 0; x < m; x++) {
       const off = !onPlan.has(deck[x]!);
       if (off) offPlan++;
-      if (!link[x]) {
+      const inCore = coreK >= 0 && coreOf[deck[x]!]!.includes(coreK);
+      if (!clink[x]) {
         unlinked++;
-        if (off) loose++;
+        if (off && !inCore) loose++;
       }
     }
+    // Rating coherence counts off-plan cards outside the matched core.
+    let offPlanCore = 0;
+    for (let x = 0; x < m; x++) if (!onPlan.has(deck[x]!) && !tie[x] && !tech[deck[x]!] && !(coreK >= 0 && coreOf[deck[x]!]!.includes(coreK))) offPlanCore++;
     const effOf = (p: PM): number => p.strength * (1 - PLAN.linkageWeight + PLAN.linkageWeight * linkage(p));
     const primary = pr ? {
       k: pr.k, asm: pr.asm, strength: pr.strength, eff: effOf(pr), enablers: pr.enablers, payoffs: pr.payoffs,
@@ -377,7 +499,7 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     for (const lock of c5) {
       const x = deck.indexOf(lock);
       if (x < 0) continue;
-      partnersShort += Math.max(0, FLOOR.buildAroundPartners! - deg[x]!);
+      partnersShort += Math.max(0, FLOOR.buildAroundPartners! - pdeg[x]!);
       const rest = deck.filter((i) => i !== lock);
       const best = matchAll(rest).find((p) => p.asm >= PLAN_THRESHOLD);
       if (!best || best.asm < FLOOR.planAssembly!) withoutShort += 1;
@@ -396,13 +518,10 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     }
 
     // Violations of the floor proxies (and of the brew requirements), in comparable units.
-    const alt = linkedPairs >= FLOOR.linkedPairsAlt!;
     const bestAsm = all.reduce((s, p) => Math.max(s, p.asm), 0);
     let v = 0;
-    if (!alt) {
-      v += Math.max(0, FLOOR.strongPairs! - strong);
-      if (!pr || pr.asm < FLOOR.planAssembly!) v += 1 + 5 * Math.max(0, FLOOR.planAssembly! - bestAsm);
-    }
+    v += Math.max(0, bar - coh) / 2;
+    if ((!pr || pr.asm < FLOOR.planAssembly!) && coreK < 0 && coh < FLOOR.cohesionPlanAlt!) v += 1 + 5 * Math.max(0, FLOOR.planAssembly! - bestAsm);
     v += Math.max(0, unlinked - FLOOR.unlinkedCards!);
     v += Math.max(0, loose - FLOOR.looseCards!);
     v += Math.max(0, FLOOR.meanQuality! - meanQ) / 4;
@@ -410,6 +529,9 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     v += 3 * Math.max(0, SEARCH.minAvgCost - avgEff) + Math.max(0, avgEff - SEARCH.maxAvgCost);
     v += Math.max(0, SEARCH.minCostAtMost2 - cheap2) + Math.max(0, SEARCH.minCostAtMost3 - cheap3);
     v += partnersShort + 2 * withoutShort + 2 * decoration;
+    for (const i of deck) for (const group of needs[i]!) if (!deck.some((j) => j !== i && group.some((ax) => enAxes[j]!.has(ax)))) v += 1;
+    // Tuned around an archetype core: the primary plan stays the archetype's (calibration pass).
+    if (opts.mode === 'tuned' && targetK >= 0 && pr?.k !== targetK) v += 1;
     if (opts.mode === 'brew') {
       if (opts.maxShared !== null) v += Math.max(0, o1 - opts.maxShared);
       v += Math.max(0, SEARCH.minNovelty - novelty) / 4;
@@ -419,8 +541,8 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
     const cell = `${pr ? plans[pr.k]!.def.id : 'none'}|${curveShape(avgCost)}`;
     const locksInPlan = pr ? c5.filter((i) => pr.members.includes(i)).length : 0;
     return {
-      n: m, syn, antiSum, strong, linked: linkedPairs, unlinked, loose, meanQ, weak, o1, novelty, primary, secondary,
-      bestAsm, bestStrength: all[0]?.strength ?? 0, offPlan, avgCost, avgEff, cheap2, cheap3, partnersShort, withoutShort, gemBonus, lockSyn, locksInPlan, violations: v, cell,
+      n: m, syn, coh, cohMech, coreShared: coreK >= 0 ? coreShared / coreSize[coreK]! : 0, antiSum, strong, linked: linkedPairs, unlinked, loose, meanQ, weak, o1, novelty, primary, secondary,
+      bestAsm, bestStrength: all[0]?.strength ?? 0, offPlan, offPlanCore, avgCost, avgEff, cheap2, cheap3, partnersShort, withoutShort, gemBonus, lockSyn, synRel, hubSum, unrelatedCards, locksInPlan, violations: v, cell,
     };
   }
 
@@ -431,8 +553,7 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
    */
   function fastRating(ev: Ev): number {
     const clamp = (x: number): number => (Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0);
-    const synV = SYNERGY.wSum * Math.min(1, ev.syn / SYNERGY.sumTarget) + SYNERGY.wStrong * Math.min(1, ev.strong / SYNERGY.strongTarget)
-      + SYNERGY.wConnected * (1 - ev.unlinked / Math.max(1, ev.n)) - SYNERGY.antiPenalty * ev.antiSum;
+ const synV = SYNERGY.wCohesion * cohesionCredit(ev.cohMech, ev.coh - ev.cohMech, COHESION.fullCredit) + SYNERGY.wConnected * (1 - ev.unlinked / Math.max(1, ev.n)) - SYNERGY.antiPenalty * ev.antiSum;
     let planV: number;
     let consV = 0;
     let resV = 0;
@@ -442,16 +563,29 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
       const sv = ev.secondary ? clamp((ev.secondary.eff - PLAN.zeroStrength) / (PLAN.fullStrength - PLAN.zeroStrength)) : 0;
       planV = PLAN.wPrimary * clamp((p.eff - PLAN.zeroStrength) / (PLAN.fullStrength - PLAN.zeroStrength))
         + PLAN.wPayoffQuality * clamp((pq - PLAN.payoffQualityLow) / (PLAN.payoffQualityHigh - PLAN.payoffQualityLow)) + PLAN.wSecondary * sv;
-      consV = clamp((p.asm - CONSISTENCY.low) / (CONSISTENCY.high - CONSISTENCY.low)) - (p.single ? CONSISTENCY.singleCardPenalty : 0);
-      resV = hasMeta ? (1 - RESILIENCE.exposureWeight * plans[p.k]!.exposure) * clamp(p.eff / PLAN.fullStrength) : RESILIENCE.noMeta;
+      planV = Math.max(planV, PLAN.coreCredit * ev.coreShared);
+      consV = Math.max(clamp((p.asm - CONSISTENCY.low) / (CONSISTENCY.high - CONSISTENCY.low)), CONSISTENCY.coreCredit * ev.coreShared) - (p.single ? CONSISTENCY.singleCardPenalty : 0);
+      resV = hasMeta ? Math.max((1 - RESILIENCE.exposureWeight * plans[p.k]!.exposure) * clamp(p.eff / PLAN.fullStrength), RESILIENCE.noMeta * ev.coreShared) : RESILIENCE.noMeta;
+    } else if (ev.coreShared > 0) {
+      planV = PLAN.coreCredit * ev.coreShared;
+      consV = CONSISTENCY.coreCredit * ev.coreShared;
+      resV = RESILIENCE.noMeta * ev.coreShared;
     } else {
       planV = PLAN.noPrimaryCredit * clamp(ev.bestStrength / PLAN.fullStrength);
+      // rate.ts packageShare: a cohesive package with no family and no core.
+      const share = clamp((ev.coh - bar) / Math.max(1e-9, COHESION.fullCredit - bar));
+      if (share > 0) {
+        planV = Math.max(planV, PLAN.packageCredit * share);
+        consV = CONSISTENCY.packageCredit * share;
+        resV = RESILIENCE.noMeta * share;
+      }
     }
     const energyV = clamp(1 - 0.5 * (Math.max(0, SEARCH.minAvgCost - ev.avgEff) + Math.max(0, SEARCH.minCostAtMost3 - ev.cheap3) / 2 + Math.max(0, SEARCH.minCostAtMost2 - ev.cheap2) / 2));
     const qualV = clamp((ev.meanQ - QUALITY.meanLow) / (QUALITY.meanHigh - QUALITY.meanLow)) - QUALITY.tailPenalty * ev.weak;
-    const cohV = 1 - COHERENCE.offPlanPenalty * Math.max(0, ev.offPlan - COHERENCE.offPlanAllowed);
-    return RATING_WEIGHTS.synergy * clamp(synV) + RATING_WEIGHTS.plan * clamp(planV) + RATING_WEIGHTS.energy * energyV
-      + RATING_WEIGHTS.consistency * clamp(consV) + RATING_WEIGHTS.quality * clamp(qualV) + RATING_WEIGHTS.resilience * clamp(resV)
+    const cohV = 1 - COHERENCE.offPlanPenalty * Math.max(0, ev.offPlanCore - COHERENCE.offPlanAllowed);
+    const gate = clamp((ev.coh - COHESION.gateFrom * bar) / ((1 - COHESION.gateFrom) * bar));
+    return RATING_WEIGHTS.synergy * clamp(synV) + RATING_WEIGHTS.plan * clamp(planV) * gate + RATING_WEIGHTS.energy * energyV
+      + RATING_WEIGHTS.consistency * clamp(consV) * gate + RATING_WEIGHTS.quality * clamp(qualV) + RATING_WEIGHTS.resilience * clamp(resV) * gate
       + RATING_WEIGHTS.coherence * clamp(cohV);
   }
 
@@ -461,7 +595,7 @@ export function createSpace(db: CardDb, ids: readonly string[], opts: SpaceOptio
    * is in the primary plan. Tuned: the rating proxy. Minus penalties.
    */
   function objective(ev: Ev): number {
-    const base = opts.mode === 'brew' ? ev.novelty + 2 * ev.syn + ev.gemBonus / 10 + ev.lockSyn + 10 * ev.locksInPlan : fastRating(ev);
+    const base = opts.mode === 'brew' ? ev.novelty + 2 * ev.synRel + ev.gemBonus / 10 + ev.lockSyn + 10 * ev.locksInPlan - SEARCH.hubPenalty * ev.hubSum - SEARCH.unrelatedCardPenalty * ev.unrelatedCards : fastRating(ev);
     return base - SEARCH.penalty * ev.violations;
   }
 
@@ -516,12 +650,22 @@ export function greedy(space: Space, start: readonly number[], size = 12): numbe
  * Seeded simulated annealing over one-card swaps (theory §4.5 step 3). Fixed cards never leave. Every
  * accepted zero-violation deck is offered to the archive. Returns the best deck seen (by objective).
  */
-export function anneal(space: Space, start: readonly number[], seed: number, proposals: number, archive: Archive, occupied: ReadonlySet<string> = new Set()): Candidate {
+export function anneal(space: Space, start: readonly number[], seed: number, proposals: number, archive: Archive, occupied: ReadonlySet<string> = new Set(), avoid: readonly (readonly number[])[] = []): Candidate {
   const rnd = mulberry32(seed);
   const fixed = new Set(space.fixed);
   const cur = [...start];
   const free = cur.map((_, i) => i).filter((i) => !fixed.has(cur[i]!));
-  const obj = (ev: Ev): number => space.objective(ev) - (occupied.has(ev.cell) ? SEARCH.occupiedPenalty : 0);
+  const avoidSets = avoid.map((d) => new Set(d));
+  const overlap = (): number => {
+    let pen = 0;
+    for (const a of avoidSets) {
+      let shared = 0;
+      for (const i of cur) if (a.has(i)) shared++;
+      pen += Math.max(0, shared - (cur.length - SEARCH.minDiff));
+    }
+    return pen * SEARCH.overlapPenalty;
+  };
+  const obj = (ev: Ev): number => space.objective(ev) - (occupied.has(ev.cell) ? SEARCH.occupiedPenalty : 0) - (avoidSets.length ? overlap() : 0);
   let curEv = space.evaluate(cur);
   let curF = obj(curEv);
   offer(archive, cur, curEv, space.objective(curEv));

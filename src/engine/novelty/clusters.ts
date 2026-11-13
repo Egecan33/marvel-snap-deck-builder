@@ -39,6 +39,19 @@ export function wilsonUpper(k: number, n: number): number {
   return Math.min(1, Math.max(0, (centre + margin) / denom));
 }
 
+/** Lower end of the one-sided 95% Wilson score interval for k successes in n trials; 0 when n is 0. */
+export function wilsonLower(k: number, n: number): number {
+  const nn = Number.isFinite(n) ? Math.floor(n) : 0;
+  if (nn <= 0) return 0;
+  const kk = Math.min(nn, Math.max(0, Number.isFinite(k) ? k : 0));
+  const p = kk / nn;
+  const z2 = Z * Z;
+  const denom = 1 + z2 / nn;
+  const centre = p + z2 / (2 * nn);
+  const margin = Z * Math.sqrt((p * (1 - p)) / nn + z2 / (4 * nn * nn));
+  return Math.min(1, Math.max(0, (centre - margin) / denom));
+}
+
 /**
  * Unexplored factor U = 1 - min(1, WilsonUpper95(n_ab, N) / 0.01) (theory §4.4). With nothing observed
  * it is 0.00 at N = 100, 0.11 at 300, 0.73 at 1,000: a thin corpus cannot call anything unexplored.

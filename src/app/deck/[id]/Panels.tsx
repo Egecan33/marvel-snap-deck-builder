@@ -53,8 +53,9 @@ export function RatingPanel({ a, onFix }: { a: AnalyzeResponse; onFix: (f: Fix) 
   return (
     <div data-testid="panel-rating">
       <p className="text-[0.85rem] text-muted">
-        <Prov p="heuristic" /> The rating weighs the parts below. It is not calibrated against win rates: a meta list and a brew with the same number are not
-        known to be equally strong.
+        <Prov p="heuristic" /> The rating weighs the parts below. It is tuned so that most of the 200 most-played meta lists rate 60 or more and random
+        piles under 40, and pairs with no measured co-play earn at most half the synergy credit. It is not calibrated against win rates: a meta list and a
+        brew with the same number are not known to be equally strong.
       </p>
       <H>Parts</H>
       <ul className="space-y-3">

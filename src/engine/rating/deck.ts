@@ -5,8 +5,12 @@
  */
 import { AXIS_BY_ID } from '../features/axes';
 import { TECH_ROLES } from '../features/tech';
+import { gradedWeight, isPartner } from '../network/edges';
+import { mulberry32 } from '../maths/rng';
+import { corpusOf, LIFT_PSEUDO, wilsonLower } from '../novelty/clusters';
 import { compileAtom, detectPlans, matchesAny } from '../plans/detect';
 import type { AxisId, CardDb, CardEdge, Deck, Fix, PlanDef, TechRole } from '../types';
+import { COHESION, MEASURED, SYNERGY } from './constants';
 
 export interface PairStats {
   pairs: number;                  // pairs with an edge
@@ -38,7 +42,178 @@ export function pairStats(db: CardDb, ids: readonly string[]): PairStats {
     }
   }
   s.anti.sort((x, y) => y.anti - x.anti);
+  s.antiSum = cappedAnti(s.anti.map((e) => [e.a, e.b, e.anti] as const));
   return s;
+}
+
+/**
+ * Sum of anti-synergy with each card's share capped (calibration pass; SYNERGY.antiPerCard): an edge counts
+ * in full only while both of its cards take part in at most `antiPerCard` of anti in all, else it is scaled
+ * down by the busier card's load. Generic over card keys so the search evaluator can share it.
+ */
+export function cappedAnti<K>(edges: readonly (readonly [K, K, number])[]): number {
+  const load = new Map<K, number>();
+  for (const [a, b, w] of edges) for (const x of [a, b]) load.set(x, (load.get(x) ?? 0) + w);
+  let sum = 0;
+  for (const [a, b, w] of edges) sum += w * Math.min(1, SYNERGY.antiPerCard / Math.max(load.get(a)!, load.get(b)!, 1e-9));
+  return sum;
+}
+
+export interface MeasuredPair { value: number; observed: number; expected: number; lift: number; share: number; clusters: number }
+
+const measuredCache = new WeakMap<CardDb, Map<string, MeasuredPair | null>>();
+
+/**
+ * Measured co-play evidence of a pair (calibration pass; MEASURED in constants.ts), over list clusters of the
+ * synced corpus. The pair must co-occur significantly above chance: the lift that the one-sided 95% Wilson
+ * LOWER bound of its co-play rate supports is at least `MEASURED.minLift` (cards of one big archetype family
+ * co-occur a little above chance everywhere, so a raw lift is not enough). Its weight is then the share of
+ * the rarer card's clusters that also hold the other card ("when you see the rarer card, the other is
+ * there"), mapped to 0..1 between `shareZero` and `shareFull`. Null when the corpus or either card has too
+ * little data or the pair is not significant. Cached per database.
+ */
+export function measuredPair(db: CardDb, a: string, b: string): MeasuredPair | null {
+  let cache = measuredCache.get(db);
+  if (!cache) measuredCache.set(db, (cache = new Map()));
+  const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+  const hit = cache.get(key);
+  if (hit !== undefined) return hit;
+  let out: MeasuredPair | null = null;
+  const corpus = corpusOf(db);
+  const N = corpus.clusters;
+  if (a !== b && N >= MEASURED.minCorpusClusters) {
+    const na = corpus.cardClusters(a);
+    const nb = corpus.cardClusters(b);
+    if (na >= MEASURED.minCardClusters && nb >= MEASURED.minCardClusters) {
+      const observed = corpus.together([a, b]);
+      if (observed >= MEASURED.minTogether) {
+        const expected = (na * nb) / N;
+        const liftLow = expected > 0 ? (wilsonLower(observed, N) * N) / expected : 0;
+        const share = observed / Math.min(na, nb);
+        const value = liftLow >= MEASURED.minLift ? Math.max(0, Math.min(1, (share - MEASURED.shareZero) / (MEASURED.shareFull - MEASURED.shareZero))) : 0;
+        if (value > 0) out = { value, observed, expected, lift: (observed + LIFT_PSEUDO) / (expected + LIFT_PSEUDO), share, clusters: N };
+      }
+    }
+  }
+  cache.set(key, out);
+  return out;
+}
+
+export interface CohesionPair { a: string; b: string; mech: number; measured: number; weight: number; edge: CardEdge | undefined; m: MeasuredPair | null }
+export interface Cohesion {
+  /** Sum over pairs of max(mechanical x mechFactor, measured). */
+  total: number;
+  /** Part of `total` carried by mechanical edges (heuristic network). */
+  mech: number;
+  /** Part of `total` that only measured co-play adds (measured). */
+  measured: number;
+  /** Pairs with any weight, heaviest first. */
+  pairs: CohesionPair[];
+  /** Cards in no pair with weight (no edge of 0.2+ and no measured co-play). */
+  unlinked: string[];
+  /** Real partners per card (network/edges.ts `isPartner`). */
+  partners: Map<string, number>;
+}
+
+/**
+ * Graded cohesion of a deck (calibration pass, spec §12 synergy and §14 C6 reworked): every pair counts the
+ * larger of its graded mechanical weight (x COHESION.mechFactor, heuristic) and its measured co-play weight,
+ * so 0.3-0.5 edges and proven pairs count instead of only edges of 0.5 or more. Pure and deterministic.
+ */
+export function cohesionOf(db: CardDb, ids: readonly string[]): Cohesion {
+  const pairs: CohesionPair[] = [];
+  const linked = new Set<string>();
+  const partners = new Map<string, number>();
+  let total = 0;
+  let mechSum = 0;
+  for (let i = 0; i < ids.length; i++) {
+    for (let j = i + 1; j < ids.length; j++) {
+      const a = ids[i]!;
+      const b = ids[j]!;
+      if (a === b) continue;
+      const e = db.edge(a, b);
+      const mech = gradedWeight(e) * COHESION.mechFactor;
+      const m = measuredPair(db, a, b);
+      const measured = m?.value ?? 0;
+      const weight = Math.max(mech, measured);
+      if (isPartner(e)) for (const x of [a, b]) partners.set(x, (partners.get(x) ?? 0) + 1);
+      if (weight <= 0) continue;
+      total += weight;
+      mechSum += mech;
+      linked.add(a);
+      linked.add(b);
+      pairs.push({ a, b, mech, measured, weight, edge: e, m });
+    }
+  }
+  pairs.sort((x, y) => y.weight - x.weight || (x.a + x.b < y.a + y.b ? -1 : 1));
+  return { total, mech: mechSum, measured: total - mechSum, pairs, unlinked: ids.filter((id) => !linked.has(id)), partners };
+}
+
+/** Cohesion credit 0..1: mechanical pairs earn at most `COHESION.mechCap` of `target`, measured co-play the rest. */
+export function cohesionCredit(mech: number, measured: number, target: number): number {
+  return Math.min(1, (Math.min(mech, COHESION.mechCap * target) + measured) / Math.max(1e-9, target));
+}
+
+/** Cards with a pair of at least `COHESION.tiedWeight` to another deck card (mechanical or measured). */
+export function tiedCards(c: Cohesion): Set<string> {
+  const out = new Set<string>();
+  for (const p of c.pairs) if (p.weight >= COHESION.tiedWeight) { out.add(p.a); out.add(p.b); }
+  return out;
+}
+
+/**
+ * The rating's synergy sub-score value (calibration pass): graded cohesion against `COHESION.fullCredit`
+ * scaled by the deck's pair count, plus the share of cards linked to another card, minus anti-synergy;
+ * clamped to [0, 1]. Shared by rate.ts and the floor's ablation check so both read the same number.
+ */
+export function synergyValueOf(c: Cohesion, n: number, antiSum: number, capped = true): number {
+  const pairScale = n > 1 ? (n * (n - 1)) / 2 / 66 : 0;
+  const target = Math.max(0.5, COHESION.fullCredit * pairScale);
+  const connected = n ? 1 - c.unlinked.length / n : 0;
+  // `capped: false` (the floor's ablation check) reads the card's whole contribution: under the mechanical cap a brew's credit is
+  // saturated, so removing a load-bearing card would not lower it.
+  const credit = capped ? cohesionCredit(c.mech, c.measured, target) : Math.min(1, c.total / target);
+  const v = SYNERGY.wCohesion * credit + SYNERGY.wConnected * connected - SYNERGY.antiPenalty * antiSum;
+  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0;
+}
+
+/** Seeded random piles behind the floor's cohesion bar (calibration pass). */
+export const COHESION_NULL = { seed: 20261130, piles: 300 } as const;
+const nullCache = new WeakMap<CardDb, { max: number; p95: number }>();
+
+/**
+ * Cohesion that chance reaches in this pool and corpus (calibration pass, derived): the largest and 95th
+ * percentile cohesion of `COHESION_NULL.piles` random 12-card piles of released cards drawn with
+ * mulberry32(`COHESION_NULL.seed`). Measured co-play grows with the corpus, so a fixed bar would let random
+ * piles through on a large snapshot; the floor's C6 bar is never below this maximum. Cached per database.
+ */
+export function cohesionNull(db: CardDb): { max: number; p95: number } {
+  const hit = nullCache.get(db);
+  if (hit) return hit;
+  const pool = db.released().map((c) => c.defId).sort();
+  const rnd = mulberry32(COHESION_NULL.seed);
+  const totals: number[] = [];
+  for (let k = 0; k < COHESION_NULL.piles && pool.length >= 12; k++) {
+    const pile = new Set<string>();
+    while (pile.size < 12) pile.add(pool[Math.floor(rnd() * pool.length)]!);
+    totals.push(cohesionOf(db, [...pile]).total);
+  }
+  totals.sort((x, y) => x - y);
+  const out = { max: totals[totals.length - 1] ?? 0, p95: totals[Math.floor(0.95 * (totals.length - 1))] ?? 0 };
+  nullCache.set(db, out);
+  return out;
+}
+
+/** Cohesion bar of a complete deck for this database: COHESION.bar, or the most cohesion seeded random piles reach when higher. */
+export function cohesionBar(db: CardDb): number {
+  return Math.max(COHESION.bar, Math.ceil(cohesionNull(db).max * 10 + 1e-9) / 10);
+}
+
+/** "A + B" for the heaviest pairs, labelled measured or by their edge. */
+export function cohesionPairsText(db: CardDb, c: Cohesion, n = 3): string {
+  return c.pairs.slice(0, n).map((p) => p.measured > p.mech && p.m
+    ? `${nameOf(db, p.a)} + ${nameOf(db, p.b)} (together in ${p.m.observed} of ${p.m.clusters} list clusters, ${p.m.expected.toFixed(1)} expected by popularity, ${Math.round(p.m.share * 100)}% of the rarer card's clusters; measured)`
+    : `${nameOf(db, p.a)} + ${nameOf(db, p.b)} (pair score ${(p.edge?.score ?? 0).toFixed(2)}, heuristic)`).join('; ');
 }
 
 export const nameOf = (db: CardDb, id: string): string => db.get(id)?.name ?? id;
@@ -60,11 +235,19 @@ export function edgeLabel(e: CardEdge, kind: 'synergy' | 'anti' = 'synergy'): st
  * axis (payoff strength 1) when no other deck card enables any of its payoff axes, the card does not
  * enable them itself, and it has no strong edge in the deck.
  */
+/**
+ * Axes whose payoff side is a CARRIER, not a need (features/axes.ts payoff rules): any On Reveal, Ongoing, End of
+ * Turn or Activate card benefits from an amplifier, a deck puller or a "when you draw" card works on ordinary draws,
+ * and a global buff works without fillers. Such a card has nothing missing when no enabler is in the deck.
+ * Calibration pass: the coherence fix read "Anti-Polar Magneto rewards repeat on reveals" for every On Reveal card.
+ */
+const CARRIER_AXES: ReadonlySet<string> = new Set(['on_reveal_amp', 'ongoing_amp', 'end_of_turn_amp', 'activate_amp', 'deck_top', 'draw', 'go_wide']);
+
 export function unsupportedPayoffs(db: CardDb, ids: readonly string[], stats: PairStats): { defId: string; axes: AxisId[] }[] {
   const out: { defId: string; axes: AxisId[] }[] = [];
   for (const id of ids) {
     const ax = db.features(id)?.axes ?? {};
-    const payoffAxes = Object.entries(ax).filter(([, v]) => v.p >= 1).map(([k]) => k);
+    const payoffAxes = Object.entries(ax).filter(([k, v]) => v.p >= 1 && !CARRIER_AXES.has(k)).map(([k]) => k);
     if (payoffAxes.length === 0 || (stats.degree.get(id) ?? 0) > 0) continue;
     const fed = payoffAxes.some((k) => (ax[k]!.e >= 0.5) || ids.some((o) => o !== id && (db.features(o)?.axes[k]?.e ?? 0) >= 0.5));
     if (!fed) out.push({ defId: id, axes: payoffAxes });
@@ -135,6 +318,9 @@ const ATOM_WORDS: Record<string, string> = {
   'cond:alone_here': 'a condition on being alone at its location', 'cond:turn_number': 'a condition on the turn number',
   'scale:distinct_costs': 'scaling with different Costs', 'scale:opp_deck_size': "scaling with the opponent's deck size",
   'scale:opp_hand_size': "scaling with the opponent's hand size", 'creates:no_ability': 'a created card with no ability',
+  gen_hand_hand: 'an effect that adds cards to your hand', copy_card_hand: 'an effect that copies a card into your hand',
+  cost_reduce_hand: 'a Cost cut on cards in your hand', 'cond:spent_all_energy': 'a condition on spending all your Energy',
+  'scale:cards_played': 'scaling with the cards you played', 'cond:played_n_cards': 'a condition on playing several cards in a turn',
 };
 
 function atomWords(atom: string): string {

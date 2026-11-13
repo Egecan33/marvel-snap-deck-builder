@@ -4,7 +4,7 @@ import { AXIS_BY_ID } from '@/engine/features/axes';
 import { TECH_ROLES } from '@/engine/features/tech';
 import { parseDecklist } from '@/engine/io/decklist';
 import { pAtLeastOne, pOneOfEach } from '@/engine/maths/hypergeo';
-import { atomsOf, checkPlans, detectPlans, drawAdjust, foldInfo, PLAN_THRESHOLD } from '@/engine/plans/detect';
+import { ARCHETYPE_CORE, archetypeCore, atomsOf, checkPlans, detectPlans, drawAdjust, foldInfo, lockedArchetypePlan, PLAN_THRESHOLD } from '@/engine/plans/detect';
 import type { CardDb, Deck, PlanReport } from '@/engine/types';
 import { deckNames, deckText, fixtureDb } from '../helpers/fixture-db';
 
@@ -20,12 +20,45 @@ const UNRELATED = ['Hawkeye', 'Medusa', 'Starlord', 'Gamora', 'Ironheart', 'MrFa
 describe('sync-data/plans.json', () => {
   const plans = db.plans();
 
-  it('holds the 18 families of theory §2, plus unspent-energy (engine review), and is well-formed', () => {
+  it('holds the 18 families of theory §2, unspent-energy (engine review) and the four of the calibration pass, and is well-formed', () => {
     // unspent-energy was added after the engine review (2026-11-13) from the mechanics §4 axis of the same name:
     // without it Sunspot and Bruce Banner were "built around" inside Move decks that did not use them.
-    expect(plans).toHaveLength(19);
-    expect(plans.filter((p) => p.id !== 'unspent-energy')).toHaveLength(18);
+    // Calibration pass: created-cards, skills, spend-all-energy and empower, read from the synced texts of the big
+    // archetypes that had no family (Created Cards, Vampire Killmonger, Merlin, Surfer / Lancelot).
+    const added = ['unspent-energy', 'created-cards', 'skills', 'spend-all-energy', 'empower'];
+    expect(plans).toHaveLength(23);
+    expect(plans.filter((p) => !added.includes(p.id))).toHaveLength(18);
+    for (const id of added) expect(plans.map((p) => p.id)).toContain(id);
     expect(checkPlans(plans, TECH_ROLES.map((r) => r.id))).toEqual([]);
+  });
+
+  it('calibration pass: the new families are the primary plan of the archetypes they were written for', () => {
+    const arch = (name: string) => db.meta().archetypes().find((a) => a.name === name)!;
+    const primary = (name: string) => plansOf(deckOf([...arch(name).sample], name)).primary?.planId ?? null;
+    expect(primary('Created Cards Deck')).toBe('created-cards');
+    expect(primary('Vampire Killmonger')).toBe('spend-all-energy');
+    // Spend-all-energy payoffs are the cards that name it (Vampire Killmonger "If you spent all your Energy").
+    const vk = plansOf(deckOf([...arch('Vampire Killmonger').sample])).all.find((m) => m.planId === 'spend-all-energy')!;
+    expect(vk.payoffs).toContain('VampireKillmonger');
+    // Skills: Nicholas Scratch pays off skills; skill cards and skill creators enable it.
+    const skills = plansOf(deckOf(['NicholasScratch', 'ScarletWitchQueenOfChaos', 'MajesticWingbeat', 'DeafeningChord', ...UNRELATED.slice(0, 8)])).all.find((m) => m.planId === 'skills')!;
+    expect(skills.payoffs).toEqual(['NicholasScratch']);
+    expect(skills.enablers).toEqual(expect.arrayContaining(['ScarletWitchQueenOfChaos', 'MajesticWingbeat', 'DeafeningChord']));
+  });
+
+  it('calibration pass: a deck holding a known archetype core is that archetype even without a family', () => {
+    const top = [...db.meta().archetypes()].filter((a) => a.games >= ARCHETYPE_CORE.minGames).sort((a, b) => b.games - a.games)[0]!;
+    const core = top.topCards.slice(0, ARCHETYPE_CORE.size);
+    const hit = archetypeCore(db, [...core.slice(0, ARCHETYPE_CORE.min), ...UNRELATED.slice(0, 7)]);
+    expect(hit?.name).toBe(top.name);
+    expect(hit!.shared).toHaveLength(ARCHETYPE_CORE.min);
+    expect(archetypeCore(db, [...core.slice(0, ARCHETYPE_CORE.min - 1), ...UNRELATED.slice(0, 8)])).toBeNull();
+    const bare: CardDb = { ...db, meta: () => createMetaIndex(null, [], []) };
+    expect(archetypeCore(bare, core)).toBeNull();
+    // Tuned builds read the locked core's plan: the four most-played cards of an archetype map to its plan.
+    const vk = db.meta().archetypes().find((a) => a.name === 'Vampire Killmonger')!;
+    expect(lockedArchetypePlan(db, vk.topCards.slice(0, 4))?.planId).toBe('spend-all-energy');
+    expect(lockedArchetypePlan(db, vk.topCards.slice(0, 1))).toBeNull();
   });
 
   it('uses trait ids that traitsOf emits and axis ids that exist', () => {

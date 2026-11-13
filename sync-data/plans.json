@@ -180,6 +180,46 @@
     "payoffWeight": 0.6
   },
   {
+    "id": "created-cards",
+    "name": "Created cards",
+    "enablerTraits": ["gen_hand_hand", "copy_card_hand"],
+    "payoffTraits": ["axis:created_cards.p"],
+    "minEnablers": 2, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} fill your hand with created cards; {payoffs} make them cheaper or reward playing them, so the extra cards win lanes on turns 5 and 6.",
+    "foldsTo": ["created-tax", "hand-attack"],
+    "payoffWeight": 0.8
+  },
+  {
+    "id": "skills",
+    "name": "Skills",
+    "enablerTraits": ["axis:skills.e"],
+    "payoffTraits": ["axis:skills.p"],
+    "minEnablers": 2, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} are skills or add skills to your hand; {payoffs} grow each time you play one, on an otherwise light board.",
+    "foldsTo": ["on-reveal-denial", "power-reset"],
+    "payoffWeight": 0.7
+  },
+  {
+    "id": "spend-all-energy",
+    "name": "Spend all your Energy",
+    "enablerTraits": ["cost:0-1", "axis:skills.e", "gen_hand_hand&cost_reduce_hand"],
+    "payoffTraits": ["cond:spent_all_energy", "scale:cards_played", "cond:played_n_cards"],
+    "minEnablers": 3, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} soak up the Energy left over each turn; {payoffs} grow every turn you spend it all or play several cards.",
+    "foldsTo": ["hand-attack", "cost-lock"],
+    "payoffWeight": 0.75
+  },
+  {
+    "id": "empower",
+    "name": "Power gains (Empower)",
+    "enablerTraits": ["axis:empower.e"],
+    "payoffTraits": ["axis:empower.p"],
+    "minEnablers": 2, "minPayoffs": 1, "keyTurn": 5,
+    "takesLocations": "{enablers} give your cards Power; {payoffs} add more to every card whose Power was increased.",
+    "foldsTo": ["power-reset", "text-removal"],
+    "payoffWeight": 0.75
+  },
+  {
     "id": "deck-hand-attack",
     "name": "Deck and hand attack",
     "enablerTraits": ["role:deck-attack", "role:hand-attack"],

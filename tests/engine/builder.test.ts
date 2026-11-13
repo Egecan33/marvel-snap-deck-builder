@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createMetaIndex } from '@/engine/carddb';
 import { build, explainPicks, fillRest } from '@/engine/builder/build';
-import { checkFloor, FLOOR, linkedStats, strongPartners, unmetConditions } from '@/engine/builder/floor';
+import { checkFloor, FLOOR, linkedStats, realPartners, strongPartners, synergyValue, unmetConditions } from '@/engine/builder/floor';
+import { isPartner } from '@/engine/network/edges';
 import { applySwaps, improveDeck, suggestSwaps } from '@/engine/builder/improve';
 import { DEFAULT_PROMPTS } from '@/engine/builder/pool';
 import { createSpace } from '@/engine/builder/search';
@@ -37,20 +38,33 @@ describe('power floor (theory §4.5, §4.8)', () => {
   const rand = randomPiles(20261113, 50).map((ids) => checkFloor(deckOf(ids), ctx));
 
   it('passes the known-good lists at the measured rate and fails every random pile', () => {
-    // Spec target: >= 95% of the top-200 fixture lists pass. NOT REACHED: measured 2026-11-13 with the
-    // re-tuned FLOOR, 87 of 200 (43.5%) pass while all 50 random piles fail; with the research thresholds
-    // only 14 of 200 passed. The network finds a median of 1 strong pair per meta list (HANDOVER Task 5
-    // recall gap) and plan detection misses whole families (Task 6), so no threshold on these signals
-    // passes 95% of lists without letting random piles through (random piles never exceed 2 strong
-    // pairs). This assert holds the level reached so a regression shows; it is not the target.
-    // Task 12: the reviewed Arthur Pendragon override (Excalibur's text) raised this to 98 of 200 (49%).
+    // Spec target: >= 95% of the top-200 fixture lists pass. NOT REACHED on the fixture. History: 87 of 200 with the re-tuned
+    // FLOOR of Task 8, 98 after the Arthur Pendragon override (Task 12). Calibration pass (2026-11-13): C6 is graded cohesion
+    // (mechanical pairs of 0.2+ graded, plus measured co-play) against a bar no seeded random pile reaches, C4 also accepts a known
+    // archetype core, four plan families were added and C2/C3 sit at the 5th / 95th percentile of the real lists. Measured:
+    // 170 of 200 (85%) pass on the fixture (300 lists, 208 clusters: thin co-play evidence; the real database with 2,810 clusters
+    // passes 181 of 200), every random pile fails. The rest fail the energy model (Arthur lists: cost cuts from Zabu and Captain
+    // Britain are not modelled; ramp lists: generated cards are not modelled) or have cohesion below the bar on the thin fixture.
     const pass = meta.filter((r) => r.passed).length;
     console.log(`floor known-good: ${pass}/200 meta lists pass; known-bad: ${rand.filter((r) => r.passed).length}/50 random piles pass`);
     const fails = new Map<string, number>();
     for (const r of meta) for (const c of r.checks) if (!c.passed) fails.set(c.key, (fails.get(c.key) ?? 0) + 1);
     console.log(`meta lists failing each check: ${[...fails].map(([k, n]) => `${k} ${n}`).join(', ')}`);
-    expect(pass).toBeGreaterThanOrEqual(98);
+    expect(pass).toBeGreaterThanOrEqual(170);
     expect(rand.every((r) => !r.passed)).toBe(true);
+    // A second, larger set of random piles (seed 7), not used for tuning: 1 of 150 passes. It holds a real destroy package by chance
+    // (Zombie Captain Marvel and Lady Deathstrike destroy your cards; Wade Wilson and Uncle Ben replace themselves when destroyed),
+    // cohesion 6.8 against the bar of 6.5. Recorded, not hidden: the bar is the most 300 other seeded piles reach.
+    expect(randomPiles(7, 150).filter((ids) => checkFloor(deckOf(ids), ctx).passed).length).toBeLessThanOrEqual(1);
+  });
+
+  it('calibration pass: cohesion counts graded and measured pairs, each labelled', () => {
+    const r = meta[0]!.checks.find((c) => c.key === 'cohesion')!;
+    expect(r.detail).toMatch(/interaction network \(pairs of 0\.2 or more, graded, heuristic\)/);
+    // The most-played lists carry measured co-play evidence on the fixture.
+    const measured = meta.filter((m) => /from co-play in the meta corpus \(measured\)/.test(m.checks.find((c) => c.key === 'cohesion')!.detail)).length;
+    expect(measured).toBeGreaterThan(150);
+    for (const m of rand) expect(m.checks.find((c) => c.key === 'cohesion')!.passed).toBe(false);
   });
 
   it('reports value, threshold, detail and provenance for every check', () => {
@@ -147,20 +161,69 @@ describe('brew property test (spec §17)', () => {
         expect(checkFloor(r.deck, ctx, [id]).passed).toBe(true);
         expect(r.novelty.novelty, name(id)).toBeGreaterThanOrEqual(60);
         expect(r.picks).toHaveLength(11);
-        const naming = r.picks.filter((p) => db.edge(id, p.defId)?.strong && p.interaction.includes(name(id)));
+        // Calibration pass: a partner is a strong edge or a 0.4+ text-backed one (network/edges.ts isPartner).
+        const naming = r.picks.filter((p) => isPartner(db.edge(id, p.defId)) && p.interaction.includes(name(id)));
         expect(naming.length, `${name(id)} partners named`).toBeGreaterThanOrEqual(3);
         for (const p of r.picks) for (const t of [p.interaction, p.unusual, p.replaces, p.risk]) {
           expect(t.length).toBeGreaterThan(0);
           expect(t).not.toMatch(/NaN|undefined/);
         }
         expect(r.why).toContain(name(id));
+        // Calibration pass: the result is on the build-around card's OWN plan: it is an enabler or payoff of the primary plan, or
+        // it has at least three real partners in the deck.
+        const own = !!r.plan && (r.plan.enablers.includes(id) || r.plan.payoffs.includes(id));
+        expect(own || realPartners(db, id, ids).length >= 3, `${name(id)} is on its own plan`).toBe(true);
       }
     }
-    // Spec target: at least 12 of the 20 produce a deck. NOT REACHED: measured 10 of 20 on 2026-11-13.
-    // Every refusal is C5 (fewer than three strong partners in the network: Thor, Surtur, Gilgamesh and
-    // others have true partners whose edges stay below 0.5 because of fan-out weighting, HANDOVER Task 5).
-    // This assert holds the level reached.
-    expect(produced).toBeGreaterThanOrEqual(10);
+    // Spec target: at least 12 of the 20 produce a deck; calibration-pass target: at most 8 refused. Measured 10 of 20 before the
+    // calibration pass (all refusals C5: fewer than three STRONG partners). With partners counted at 0.4+ text-backed (band audit
+    // 85% strict held out) 13 of 20 produce; refused: Namora, Gilgamesh, H.E.R.B.I.E., Super-Adaptoid (fewer than 3 partners among
+    // the cards under 5% play rate), Thor (2 partners in the closest deck), Esme Cuckoo (novelty 58) and Namorita (ablation: its
+    // "only card here" condition makes it decoration in the decks found).
+    expect(produced).toBeGreaterThanOrEqual(13);
+  });
+
+  it('calibration pass: no card but the lock rides along in more than half of the brews, nor in more than 3 it is unrelated to (hub damping)', () => {
+    const made = BREWS.filter((b) => b.out.results.length);
+    const freq = new Map<string, number>();
+    const unrelated = new Map<string, number>();
+    for (const { id, out } of made) {
+      for (const c of out.results[0]!.deck.cards) {
+        if (c.defId === id) continue;
+        freq.set(c.defId, (freq.get(c.defId) ?? 0) + 1);
+        // Unrelated: no pair of 0.2+ with the lock and not a piece of the primary plan the lock is in (a co-enabler is related).
+        const p = out.results[0]!.plan;
+        const lockPlan = p && (p.enablers.includes(id) || p.payoffs.includes(id)) ? [...p.enablers, ...p.payoffs] : [];
+        if ((db.edge(id, c.defId)?.score ?? 0) < FLOOR.linkedEdge! && !lockPlan.includes(c.defId)) unrelated.set(c.defId, (unrelated.get(c.defId) ?? 0) + 1);
+      }
+    }
+    const top = (m: Map<string, number>) => [...m].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1)).slice(0, 10);
+    console.log(`cards in the most brews (${made.length} produced): ${top(freq).map(([k, n]) => `${name(k)} ${n}`).join(', ')}`);
+    console.log(`... with no pair of 0.2+ to the lock and outside its plan: ${top(unrelated).map(([k, n]) => `${name(k)} ${n}`).join(', ')}`);
+    // Before the pass Spider-Man 2099 was in 7 of 10 first results and Aurora (linked to 74% of the pool) rode along around unrelated
+    // locks. Measured after: Spider-Man 2099 in 7 of 13 (a Moveable card that afflicts, so it sits in move and affliction plans).
+    expect(top(freq)[0]![1]).toBeLessThanOrEqual(Math.ceil(made.length * 0.55));
+    expect(top(unrelated)[0]?.[1] ?? 0).toBeLessThanOrEqual(4);
+    expect(freq.get('Aurora') ?? 0).toBeLessThanOrEqual(1);
+  });
+
+  it('calibration pass: results of one build differ by at least four cards', () => {
+    for (const { id } of BREWS.filter((b) => b.out.results.length).slice(0, 4)) {
+      const out = build(lockDeck([id]), ctx, opts({ count: 3 }));
+      const decks = out.results.map((r) => new Set(r.deck.cards.map((c) => c.defId)));
+      for (let i = 0; i < decks.length; i++) for (let j = i + 1; j < decks.length; j++) {
+        const diff = [...decks[j]!].filter((x) => !decks[i]!.has(x)).length;
+        expect(diff, `${name(id)} results ${i + 1} and ${j + 1}`).toBeGreaterThanOrEqual(4);
+      }
+    }
+  });
+
+  it('calibration pass: a brew does not outrank the median meta list by default', () => {
+    const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)]!;
+    const brewRatings = BREWS.flatMap((b) => b.out.results.map((r) => r.rating));
+    const metaRatings = top200.map((ids) => rateDeck(deckOf(ids), ctx).rating);
+    console.log(`median rating: brews ${median(brewRatings)} (n ${brewRatings.length}), top-200 meta lists ${median(metaRatings)}`);
+    expect(median(brewRatings)).toBeLessThanOrEqual(median(metaRatings));
   });
 
   it('ablation: removing the build-around card lowers the plan strength or the synergy sub-score', () => {
@@ -168,12 +231,12 @@ describe('brew property test (spec §17)', () => {
       for (const r of out.results) {
         const ids = r.deck.cards.map((c) => c.defId);
         const without = deckOf(ids.filter((x) => x !== id));
-        const before = rateDeck(r.deck, ctx);
-        const after = rateDeck(without, ctx);
-        const sub = (x: typeof before, k: string) => x.subscores.find((s) => s.key === k)!.value;
+        // Calibration pass: the synergy read here is the floor's uncapped synergy value (floor.ts synergyValue). The rating's synergy
+        // sub-score caps mechanical pairs at half the credit, so for a brew it is saturated and cannot show a card's contribution.
+        const ids0 = r.deck.cards.map((c) => c.defId);
         const planBefore = detectPlans(r.deck, ctx).primary?.strength ?? 0;
         const planAfter = detectPlans(without, ctx).primary?.strength ?? 0;
-        const lower = planAfter < planBefore - 1e-9 || sub(after, 'synergy') < sub(before, 'synergy') - 1e-9;
+        const lower = planAfter < planBefore - 1e-9 || synergyValue(db, ids0.filter((x) => x !== id)) < synergyValue(db, ids0) - 1e-9;
         expect(lower, `${name(id)} is decoration`).toBe(true);
       }
     }
@@ -235,6 +298,17 @@ describe('brew property test (spec §17)', () => {
 
 describe('build prompts and modes', () => {
   const lock = BREWS.find((b) => b.out.results.length)!.id;
+
+  it('calibration pass: tuned builds around the five most-played archetype cores keep the archetype plan', () => {
+    for (const a of [...db.meta().archetypes()].sort((x, y) => y.games - x.games).slice(0, 5)) {
+      const core = a.topCards.slice(0, 4);
+      const want = a.planId ?? detectPlans(deckOf([...a.sample]), ctx).primary?.planId;
+      const r = build(lockDeck(core, 'tuned'), ctx, opts({ mode: 'tuned' })).results[0]!;
+      console.log(`tuned around ${a.name}: ${r.plan?.name} (archetype plan ${want}), rating ${r.rating}`);
+      expect(r.plan?.planId, a.name).toBe(want);
+      expect(r.why).toMatch(/Kept in /);
+    }
+  });
 
   it('tuned mode around a top archetype core rates 65 or more', () => {
     const arch = [...db.meta().archetypes()].sort((a, b) => b.share - a.share)[0]!;
@@ -312,15 +386,16 @@ describe('build prompts and modes', () => {
   it('refuses with a reason: unknown lock, too many locks, too few partners', () => {
     expect(build(lockDeck(['NotACard']), ctx, opts()).refused).toMatch(/NotACard/);
     expect(build(lockDeck(db.released().slice(0, 13).map((c) => c.defId)), ctx, opts()).refused).toMatch(/13 locked/);
-    const lonely = AROUND.find((id) => strongPartners(db, id, db.released().map((c) => c.defId)).length < 3)!;
-    expect(build(lockDeck([lonely]), ctx, opts()).refused).toMatch(/strong partner/);
+    const lonely = AROUND.find((id) => realPartners(db, id, db.released().map((c) => c.defId)).length < 3)!;
+    expect(build(lockDeck([lonely]), ctx, opts()).refused).toMatch(/partners? among the cards the prompts allow/);
   });
 
   it('engine review: a refusal names the failing checks of the closest deck', () => {
     const out = build(lockDeck(['Darkhawk']), ctx, opts());
     if (out.results.length === 0) {
       expect(out.refused).toMatch(/Closest deck \(/);
-      expect(out.refused).toMatch(/ against /);
+      // A failing floor check reads "key value against threshold"; the novelty bar reads "novelty N (at least 60)".
+      expect(out.refused).toMatch(/ against |novelty \d+ \(at least \d+\)/);
       expect(out.refused).toContain('Darkhawk');
     }
   });

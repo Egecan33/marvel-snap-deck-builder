@@ -14,7 +14,7 @@
  * The research's trait names (theory §2) were placeholders; plans.json uses these real ids instead.
  */
 import { pAtLeastOne, pOneOfEach } from '../maths/hypergeo';
-import type { Card, CardDb, CardFeatures, Deck, EngineContext, PlanDef, PlanMatch, PlanReport, TechRole } from '../types';
+import type { Card, CardDb, CardFeatures, Deck, EngineContext, MetaArchetype, PlanDef, PlanMatch, PlanReport, TechRole } from '../types';
 
 /** Assembly probability by the key turn that a plan needs to count as a deck's plan (spec §10: 60%). */
 export const PLAN_THRESHOLD = 0.6;
@@ -211,6 +211,69 @@ export function detectPlans(deck: Deck, ctx: EngineContext): PlanReport {
   for (const m of [primary, secondary]) if (m) for (const id of [...m.enablers, ...m.payoffs]) onPlan.add(id);
   const offPlan = uniqueKnown(deck, db).map((c) => c.defId).filter((id) => !onPlan.has(id));
   return { primary, secondary, all, offPlan };
+}
+
+/** Archetype-core fallback (calibration pass): the top cards of an archetype that define its core, and how many a deck needs. */
+export const ARCHETYPE_CORE = { size: 8, min: 5, minGames: 500 } as const;
+
+export interface ArchetypeCore { archetypeId: number; name: string; games: number; share: number; shared: string[]; core: string[]; planId: string | null }
+
+const coreCache = new WeakMap<CardDb, MetaArchetype[]>();
+
+/** Archetypes eligible for the core fallback, most games first (cached per database). */
+export function coreArchetypes(db: CardDb): readonly MetaArchetype[] {
+  let archs = coreCache.get(db);
+  if (!archs) {
+    archs = db.meta().info() ? [...db.meta().archetypes()].filter((a) => a.games >= ARCHETYPE_CORE.minGames && a.topCards.length >= ARCHETYPE_CORE.min) : [];
+    archs.sort((a, b) => b.games - a.games || a.id - b.id);
+    coreCache.set(db, archs);
+  }
+  return archs;
+}
+
+/**
+ * The known meta archetype whose core the deck holds (calibration pass; MEASURED: archetypes and their top
+ * cards come from the synced meta snapshot). A deck holding at least `ARCHETYPE_CORE.min` of an archetype's
+ * `ARCHETYPE_CORE.size` most-played cards demonstrably is that archetype, so the floor and the rating do not
+ * call it planless when plans.json has no family for it (Created Cards, Galacti, Surfer). Archetypes with
+ * fewer than `minGames` games are ignored. Best = most shared cards, then most games. Null without meta.
+ */
+export function archetypeCore(db: CardDb, ids: readonly string[]): ArchetypeCore | null {
+  const archs = coreArchetypes(db);
+  const set = new Set(ids);
+  let best: ArchetypeCore | null = null;
+  for (const a of archs) {
+    const core = a.topCards.slice(0, ARCHETYPE_CORE.size);
+    const shared = core.filter((id) => set.has(id));
+    if (shared.length < ARCHETYPE_CORE.min) continue;
+    if (!best || shared.length > best.shared.length) best = { archetypeId: a.id, name: a.name, games: a.games, share: a.share, shared, core, planId: a.planId };
+  }
+  return best;
+}
+
+/**
+ * The archetype a set of locked cards is the core of, and that archetype's plan (calibration pass): the most-played
+ * archetype (core fallback list) whose top cards hold at least max(2, 75% of) the locks; its plan is its synced
+ * `planId`, else the primary plan detected on its most-played list. Null for fewer than two locks or no match.
+ */
+export function lockedArchetypePlan(db: CardDb, locks: readonly string[]): { archetype: string; planId: string } | null {
+  if (locks.length < 2) return null;
+  const need = Math.max(2, Math.ceil(0.75 * locks.length));
+  // Most locks in the archetype's core, then the locks highest in its card order (the Vampire Killmonger core is the top 4 of
+  // its own archetype and the 3rd, 6th, 8th, 9th cards of Zombie), then the most-played archetype.
+  let best: { a: MetaArchetype; hits: number; rank: number } | null = null;
+  for (const a of coreArchetypes(db)) {
+    const core = a.topCards.slice(0, ARCHETYPE_CORE.size);
+    const pos = locks.map((id) => core.indexOf(id)).filter((i) => i >= 0);
+    if (pos.length < need) continue;
+    const rank = pos.reduce((s, i) => s + i, 0);
+    if (!best || pos.length > best.hits || (pos.length === best.hits && rank < best.rank)) best = { a, hits: pos.length, rank };
+  }
+  if (!best) return null;
+  const a = best.a;
+  const sample: Deck = { id: null, name: a.name, format: 'ranked', cards: a.sample.map((defId) => ({ defId, locked: false })), themes: [], buildMode: 'tuned' };
+  const planId = a.planId ?? detectPlans(sample, { db, owned: null }).primary?.planId ?? null;
+  return planId ? { archetype: a.name, planId } : null;
 }
 
 /** Problems in plan definitions: unknown atoms, unknown tech roles, bad numbers. Empty when sound. */

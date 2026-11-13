@@ -27,13 +27,13 @@ function randomPiles(seed: number, n: number): string[][] {
 
 describe('rating calibration (spec §12)', () => {
   // Spec §12 target: the 200 most-played lists rate 60+ at a 95% rate, seeded random piles under 40.
-  // NOT REACHED. Measured 2026-11-13 with rating/constants.ts as committed: 88 of 200 lists (44%) rate
-  // 60+, 41 of 50 random piles (82%) rate under 40. The best weighting found of the same signals ranks
-  // only about three quarters of the lists above every random pile: plan detection misses whole meta
-  // families (Merlin / Vampire Killmonger, Arthur, Galacti, tech piles; HANDOVER Task 6 gaps) and
-  // broad families (move, extra-energy, shuffle-in) fire on random piles. These asserts hold the level
-  // actually reached so a regression shows; they are not the target. Task 12: 91 of 200 (45.5%) after
-  // the reviewed Arthur Pendragon override; random piles unchanged (41 of 50 under 40).
+  // History: 88 then 91 of 200 lists rated 60+ and 41 of 50 random piles under 40 (Tasks 7 and 12).
+  // Calibration pass (2026-11-13): synergy reads graded cohesion with measured co-play (mechanical pairs earn at most 80% of the
+  // credit), plan / consistency / resilience credit a known archetype core and cohesive packages, scale with cohesion up to the bar
+  // random piles reach, coherence ignores tech and tied cards, anti-synergy is capped per card, weights moved from energy and card
+  // quality (which do not tell real decks from random ones) to synergy. Measured: 181 of 200 (90.5%) rate 60+, 47 of 50 random
+  // piles under 40. Target NOT fully reached: the rest are lists the energy model or plan families misread, and random piles that
+  // hold a real package by chance (a move pile with two Moveable cards and two move payoffs rates 60).
   const meta = top200.map((ids) => rateDeck(deckOf(ids), ctx));
   const rand = randomPiles(20261113, 50).map((ids) => rateDeck(deckOf(ids), ctx));
 
@@ -41,14 +41,26 @@ describe('rating calibration (spec §12)', () => {
     const pass = meta.filter((r) => r.rating >= 60).length;
     const under = rand.filter((r) => r.rating < 40).length;
     const mean = (xs: DeckRating[]) => xs.reduce((s, r) => s + r.rating, 0) / xs.length;
-    console.log(`rating calibration: ${pass}/200 meta lists rate 60+, ${under}/50 random piles under 40, mean gap ${(mean(meta) - mean(rand)).toFixed(1)}`);
-    expect(pass).toBeGreaterThanOrEqual(91);
-    expect(under).toBeGreaterThanOrEqual(41);
-    expect(mean(meta) - mean(rand)).toBeGreaterThanOrEqual(15);
+    const q = (xs: DeckRating[], p: number) => [...xs].map((r) => r.rating).sort((a, b) => a - b)[Math.round(p * (xs.length - 1))];
+    console.log(`rating calibration: ${pass}/200 meta lists rate 60+, ${under}/50 random piles under 40, mean gap ${(mean(meta) - mean(rand)).toFixed(1)}; meta p10/p50/p90 ${q(meta, 0.1)}/${q(meta, 0.5)}/${q(meta, 0.9)}, random ${q(rand, 0.1)}/${q(rand, 0.5)}/${q(rand, 0.9)}`);
+    expect(pass).toBeGreaterThanOrEqual(181);
+    expect(under).toBeGreaterThanOrEqual(47);
+    expect(mean(meta) - mean(rand)).toBeGreaterThanOrEqual(45);
     for (const r of [...meta, ...rand]) {
       expect(r.legal).toBe(true);
       expect(r.complete).toBe(true);
     }
+  });
+
+  it('calibration pass: synergy is labelled measured when co-play carries most of it, and names the pairs', () => {
+    const syn = meta.map((r) => r.subscores.find((s) => s.key === 'synergy')!);
+    expect(syn.filter((s) => s.provenance === 'measured').length).toBeGreaterThan(100);
+    const randMeasured = rand.filter((r) => r.subscores.find((s) => s.key === 'synergy')!.provenance === 'measured').length;
+    console.log(`synergy labelled measured: ${syn.filter((s) => s.provenance === 'measured').length}/200 meta lists, ${randMeasured}/50 random piles`);
+    expect(randMeasured).toBeLessThan(10);
+    // A random pile whose plan pieces barely interact has its plan credit scaled down, with the reason.
+    const gated = rand.flatMap((r) => r.subscores.filter((s) => s.key === 'plan')).filter((s) => /below .*what random piles of this pool reach/.test(s.fixes[0]?.text ?? ''));
+    expect(gated.length).toBeGreaterThan(40);
   });
 });
 

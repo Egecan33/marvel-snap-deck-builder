@@ -9,11 +9,11 @@
  */
 import { energyModel } from '../maths/energy';
 import { deckIds } from '../novelty/novelty';
-import { detectPlans } from '../plans/detect';
+import { archetypeCore, detectPlans, type ArchetypeCore } from '../plans/detect';
 import { isLegal, validateDeck } from '../rules/validate';
 import type { CardDb, Deck, DeckRating, EngineContext, Fix, PlanMatch, PlanReport, Provenance, SubScore, Violation } from '../types';
-import { COHERENCE, CONSISTENCY, ENERGY, ILLEGAL_CAP, MAX_FIXES, PLAN, QUALITY, RATING_WEIGHTS, RESILIENCE, SYNERGY } from './constants';
-import { edgeLabel, filterFor, nameOf, names, nearPlans, pairStats, patternWords, unreachableRestrictions, unsupportedPayoffs, type PairStats } from './deck';
+import { COHERENCE, COHESION, CONSISTENCY, ENERGY, ILLEGAL_CAP, MAX_FIXES, PLAN, QUALITY, RATING_WEIGHTS, RESILIENCE, SYNERGY } from './constants';
+import { cohesionBar, cohesionOf, cohesionPairsText, tiedCards, edgeLabel, filterFor, nameOf, names, nearPlans, pairStats, patternWords, synergyValueOf, unreachableRestrictions, unsupportedPayoffs, type Cohesion, type PairStats } from './deck';
 import { AXIS_BY_ID } from '../features/axes';
 
 const SIZE = 12;
@@ -21,7 +21,19 @@ const clamp01 = (x: number): number => (Number.isFinite(x) ? Math.max(0, Math.mi
 const pct = (x: number): string => `${Math.round(x * 100)}%`;
 const r1 = (x: number): string => (Math.round(x * 10) / 10).toFixed(1);
 
-interface Ctx { db: CardDb; ids: string[]; f: number; stats: PairStats; plans: PlanReport }
+interface Ctx { db: CardDb; ids: string[]; f: number; stats: PairStats; plans: PlanReport; coh: Cohesion; core: ArchetypeCore | null }
+
+/**
+ * Share 0..1 of package credit for a deck with no family and no known core (calibration pass): how far its cohesion
+ * rises from the bar random piles reach toward COHESION.fullCredit (HEURISTIC).
+ */
+function packageShare(c: Ctx): number {
+  if (c.plans.primary || c.core) return 0;
+  const pairScale = c.ids.length > 1 ? (c.ids.length * (c.ids.length - 1)) / 2 / 66 : 0;
+  const bar = cohesionBar(c.db) * pairScale;
+  const full = Math.max(bar + 1e-9, COHESION.fullCredit * pairScale);
+  return clamp01((c.coh.total - bar) / (full - bar));
+}
 
 function sub(key: keyof typeof RATING_WEIGHTS, label: string, value: number, fixes: Fix[], provenance: Provenance): SubScore {
   return { key, label, weight: RATING_WEIGHTS[key], value: clamp01(value), fixes: fixes.slice(0, MAX_FIXES), provenance };
@@ -35,32 +47,28 @@ function deckAxis(c: Ctx): string | null {
 }
 
 function synergy(c: Ctx): SubScore {
-  const { db, ids, f, stats } = c;
+  const { db, ids, f, stats, coh } = c;
+  const value = synergyValueOf(coh, ids.length, stats.antiSum);
   const pairScale = ids.length > 1 ? (ids.length * (ids.length - 1)) / 2 / 66 : 0;
-  const sumTarget = Math.max(0.5, SYNERGY.sumTarget * pairScale);
-  const strongTarget = Math.max(1, SYNERGY.strongTarget * pairScale);
-  const orphans = ids.filter((id) => (stats.best.get(id) ?? 0) < SYNERGY.weakEdge);
-  const connected = ids.length ? 1 - orphans.length / ids.length : 0;
-  const value = SYNERGY.wSum * Math.min(1, stats.synSum / sumTarget)
-    + SYNERGY.wStrong * Math.min(1, stats.strong.length / strongTarget)
-    + SYNERGY.wConnected * connected
-    - SYNERGY.antiPenalty * stats.antiSum;
+  const target = Math.max(0.5, COHESION.fullCredit * pairScale);
   const fixes: Fix[] = [];
   for (const e of stats.anti.slice(0, 1)) {
     fixes.push({ text: `${nameOf(db, e.a)} and ${nameOf(db, e.b)} work against each other (${edgeLabel(e, 'anti')}, anti ${r1(e.anti)}): cut one of them.`, filter: null });
   }
+  const orphans = coh.unlinked;
   if (orphans.length > 0) {
     const axis = deckAxis(c);
     fixes.push({
-      text: `${names(db, orphans.slice(0, 4))}${orphans.length > 4 ? ` and ${orphans.length - 4} more` : ''} ${orphans.length === 1 ? 'has' : 'have'} no interaction of ${SYNERGY.weakEdge} or more with the rest of the deck${axis ? `: replace with cards on ${AXIS_BY_ID.get(axis)?.label ?? axis}` : ''}.`,
+      text: `${names(db, orphans.slice(0, 4))}${orphans.length > 4 ? ` and ${orphans.length - 4} more` : ''} ${orphans.length === 1 ? 'has' : 'have'} no interaction of ${SYNERGY.weakEdge} or more and no measured co-play with the rest of the deck${axis ? `: replace with cards on ${AXIS_BY_ID.get(axis)?.label ?? axis}` : ''}.`,
       filter: axis ? { axis } : null,
     });
   }
-  if (stats.strong.length < strongTarget) {
+  if (coh.total < target) {
     const axis = deckAxis(c);
-    fixes.push({ text: `${stats.strong.length} strong pairs (target ${Math.round(strongTarget)} of ${Math.round(66 * pairScale)}${f < 1 ? ', scaled to the cards so far' : ''}).${axis ? ` Most of the deck is on ${AXIS_BY_ID.get(axis)?.label ?? axis}; more cards there add strong pairs.` : ''}`, filter: axis ? { axis } : null });
+    fixes.push({ text: `Cohesion ${r1(coh.total)} (full credit at ${r1(target)}${f < 1 ? ', scaled to the cards so far' : ''}): ${r1(coh.mech)} from the interaction network (heuristic)${coh.measured > 0.05 ? `, ${r1(coh.measured)} from co-play in the meta corpus (measured)` : ''}.${axis ? ` Most of the deck is on ${AXIS_BY_ID.get(axis)?.label ?? axis}; more cards there add pairs.` : ''}`, filter: axis ? { axis } : null });
   }
-  return sub('synergy', 'Synergy', value, fixes, 'heuristic');
+  // Measured when proven pairs carry most of the cohesion, heuristic otherwise.
+  return sub('synergy', 'Synergy', value, fixes, coh.measured > coh.mech ? 'measured' : 'heuristic');
 }
 
 /**
@@ -93,8 +101,21 @@ function plan(c: Ctx): SubScore {
     const qv = clamp01((q - PLAN.payoffQualityLow) / (PLAN.payoffQualityHigh - PLAN.payoffQualityLow));
     const sv = plans.secondary ? clamp01((effective(db, plans.secondary) - PLAN.zeroStrength) / (PLAN.fullStrength - PLAN.zeroStrength)) : 0;
     value = PLAN.wPrimary * clamp01((effective(db, p) - PLAN.zeroStrength) / (PLAN.fullStrength - PLAN.zeroStrength)) + PLAN.wPayoffQuality * qv + PLAN.wSecondary * sv;
+    // Calibration pass: a deck that also holds a known archetype's core gets at least the core credit (measured archetype).
+    if (c.core) value = Math.max(value, PLAN.coreCredit * (c.core.shared.length / c.core.core.length));
     if (p.strength < PLAN.fullStrength) fixes.push({ text: `${p.name}: strength ${pct(p.strength)} (${p.enablers.length} enablers ${names(db, p.enablers)}, ${p.payoffs.length} payoffs ${names(db, p.payoffs)}, assembly ${pct(p.assembly)} by turn ${p.keyTurn}).`, filter: null });
     if (!plans.secondary) fixes.push({ text: `No secondary plan: if ${names(db, p.payoffs)} ${p.payoffs.length === 1 ? 'is' : 'are'} answered, the deck has nothing else to fall back on.`, filter: null });
+  } else if (c.core) {
+    // Calibration pass: the core of a known archetype is a plan plans.json cannot name (measured archetype, heuristic credit).
+    const k = c.core.shared.length / c.core.core.length;
+    value = PLAN.coreCredit * k;
+    fixes.push({ text: `No plan family fits, but the deck holds ${c.core.shared.length} of the ${c.core.core.length} most-played cards of ${c.core.name} (${names(db, c.core.shared)}; ${c.core.games} games, measured): that archetype is its plan.`, filter: null });
+  } else if (packageShare(c) > 0) {
+    // Calibration pass: no family and no known core, but the cards cohere well above chance: a package plans.json cannot name.
+    value = PLAN.packageCredit * packageShare(c);
+    fixes.push({ text: `No plan family fits; the deck is held together by its pairs instead (cohesion ${r1(c.coh.total)}: ${cohesionPairsText(db, c.coh, 2)}).`, filter: null });
+    const best = plans.all[0];
+    if (best) value = Math.max(value, PLAN.noPrimaryCredit * clamp01(best.strength / PLAN.fullStrength));
   } else {
     const best = plans.all[0];
     value = best ? PLAN.noPrimaryCredit * clamp01(best.strength / PLAN.fullStrength) : 0;
@@ -144,8 +165,14 @@ function consistency(c: Ctx): SubScore {
   const { db, ids, plans } = c;
   const p = plans.primary;
   const draws = ids.reduce((s, id) => s + Math.max(0, db.features(id)?.model.extraSeen ?? 0), 0);
+  if (!p && c.core) {
+    const k = c.core.shared.length / c.core.core.length;
+    return sub('consistency', 'Consistency', CONSISTENCY.coreCredit * k + (draws > 0 ? CONSISTENCY.drawBonus : 0), [{ text: `No plan family to time; ${c.core.shared.length} of the ${c.core.core.length} core cards of ${c.core.name} are in the deck (measured), credited without assembly odds (heuristic).`, filter: null }], 'heuristic');
+  }
+  if (!p && packageShare(c) > 0) return sub('consistency', 'Consistency', CONSISTENCY.packageCredit * packageShare(c) + (draws > 0 ? CONSISTENCY.drawBonus : 0), [{ text: `No plan family to time; the deck's pairs (cohesion ${r1(c.coh.total)}) are credited without assembly odds (heuristic).`, filter: null }], 'heuristic');
   if (!p) return sub('consistency', 'Consistency', 0, [{ text: 'No primary plan, so there is nothing to assemble.', filter: null }], 'derived');
   let value = clamp01((p.assembly - CONSISTENCY.low) / (CONSISTENCY.high - CONSISTENCY.low));
+  if (c.core) value = Math.max(value, CONSISTENCY.coreCredit * (c.core.shared.length / c.core.core.length));
   const fixes: Fix[] = [];
   if (p.singleCardDependence) {
     value -= CONSISTENCY.singleCardPenalty;
@@ -183,6 +210,8 @@ function resilience(c: Ctx): SubScore {
   const { db, plans } = c;
   const p = plans.primary;
   if (!db.meta().info()) return sub('resilience', 'Resilience', p ? RESILIENCE.noMeta : 0, [{ text: 'No meta snapshot: tech play rates are unknown.', filter: null }], 'heuristic');
+  if (!p && c.core) return sub('resilience', 'Resilience', RESILIENCE.noMeta * (c.core.shared.length / c.core.core.length), [{ text: `No plan family, so tech exposure is not measured; the deck plays the core of ${c.core.name}.`, filter: null }], 'heuristic');
+  if (!p && packageShare(c) > 0) return sub('resilience', 'Resilience', RESILIENCE.noMeta * packageShare(c), [{ text: 'No plan family, so tech exposure is not measured; the deck is a package of interacting cards.', filter: null }], 'heuristic');
   if (!p) return sub('resilience', 'Resilience', 0, [{ text: 'No primary plan, so no plan to protect.', filter: null }], 'measured');
   const hits = p.foldsTo.map((fd) => ({ ...fd, share: fd.fieldShare ?? 0 })).sort((a, b) => b.share - a.share);
   const exposure = 1 - hits.reduce((s, h) => s * (1 - h.share), 1);
@@ -198,13 +227,18 @@ function resilience(c: Ctx): SubScore {
     if (survives) value += RESILIENCE.secondPlanCredit * exposure;
     else fixes.push({ text: second ? `${second.name} folds to ${worst.role} too.` : `No second plan survives ${worst.role}.`, filter: null });
   }
-  return sub('resilience', 'Resilience', value * weight, fixes, 'measured');
+  const coreFloor = c.core ? RESILIENCE.noMeta * (c.core.shared.length / c.core.core.length) : 0;
+  return sub('resilience', 'Resilience', Math.max(value * weight, coreFloor), fixes, 'measured');
 }
 
 function coherence(c: Ctx, unsupported: { defId: string; axes: string[] }[], unreachable: { defId: string; why: string }[]): SubScore {
   const { db, f, plans } = c;
   const allowed = COHERENCE.offPlanAllowed * f;
-  const over = Math.max(0, plans.offPlan.length - allowed);
+  // Calibration pass: cards of a matched archetype core are on plan, and a card tied to the deck by a pair of weight 0.5+
+  // (an interaction or measured co-play) is support or tech, not off-plan.
+  const tied = tiedCards(c.coh);
+  const offPlan = plans.offPlan.filter((id) => !c.core?.shared.includes(id) && !tied.has(id) && !(db.features(id)?.techRoles.length));
+  const over = Math.max(0, offPlan.length - allowed);
   const value = 1 - COHERENCE.offPlanPenalty * over - COHERENCE.unsupportedPenalty * unsupported.length - COHERENCE.unreachablePenalty * unreachable.length;
   const fixes: Fix[] = [];
   for (const u of unreachable.slice(0, 1)) fixes.push({ text: `${nameOf(db, u.defId)}: ${u.why}`, filter: null });
@@ -212,7 +246,7 @@ function coherence(c: Ctx, unsupported: { defId: string; axes: string[] }[], unr
     const axis = u.axes[0]!;
     fixes.push({ text: `${nameOf(db, u.defId)} rewards ${AXIS_BY_ID.get(axis)?.label.toLowerCase() ?? axis}, but nothing in the deck enables it${unsupported.length > 1 ? ` (also ${names(db, unsupported.slice(1, 4).map((x) => x.defId))})` : ''}.`, filter: { axis } });
   }
-  if (over > 0) fixes.push({ text: `${plans.offPlan.length} cards are in no plan (${names(db, plans.offPlan.slice(0, 4))}${plans.offPlan.length > 4 ? ' and more' : ''}); at most ${Math.round(allowed)} can be tech or flex.`, filter: null });
+  if (over > 0) fixes.push({ text: `${offPlan.length} cards are in no plan, tied to no card and not tech (${names(db, offPlan.slice(0, 4))}${offPlan.length > 4 ? ' and more' : ''}); at most ${Math.round(allowed)} can be tech or flex.`, filter: null });
   return sub('coherence', 'Coherence', value, fixes, 'heuristic');
 }
 
@@ -242,10 +276,23 @@ export function rateDeck(deck: Deck, ctx: EngineContext): DeckRating {
   const known: Deck = { ...deck, cards: ids.map((defId) => ({ defId, locked: false })) };
   const plans = detectPlans(known, ctx);
   const stats = pairStats(db, ids);
-  const c: Ctx = { db, ids, f, stats, plans };
+  const c: Ctx = { db, ids, f, stats, plans, coh: cohesionOf(db, ids), core: archetypeCore(db, ids) };
   const unsupported = unsupportedPayoffs(db, ids, stats);
   const unreachable = unreachableRestrictions(db, ids);
   const subscores = [synergy(c), plan(c), energy(c, known), consistency(c), quality(c), resilience(c), coherence(c, unsupported, unreachable)];
+  // Calibration pass: a plan matched in a deck whose cards cohere no more than random cards do is coincidental (random piles
+  // that happen to hold two Moveable cards and a move payoff). Plan, consistency and resilience scale with cohesion up to the
+  // bar random piles reach: nothing at COHESION.gateFrom of the bar, full credit at the bar (HEURISTIC).
+  const pairScale = ids.length > 1 ? (ids.length * (ids.length - 1)) / 2 / 66 : 0;
+  const bar = cohesionBar(db) * pairScale;
+  const gate = bar > 0 ? clamp01((c.coh.total - COHESION.gateFrom * bar) / ((1 - COHESION.gateFrom) * bar)) : 0;
+  if (gate < 1) {
+    for (const s of subscores) {
+      if (s.key !== 'plan' && s.key !== 'consistency' && s.key !== 'resilience') continue;
+      s.value = clamp01(s.value * gate);
+      s.fixes = [{ text: `Cohesion ${r1(c.coh.total)} is below ${r1(bar)}, what random piles of this pool reach: the plan's pieces barely interact, so this sub-score is scaled to ${pct(gate)} (heuristic).`, filter: null }, ...s.fixes].slice(0, MAX_FIXES);
+    }
+  }
   const raw = subscores.reduce((s, x) => s + x.weight * x.value, 0);
   let rating = Number.isFinite(raw) ? Math.round(raw) : 0;
   if (!legal) rating = Math.min(rating, ILLEGAL_CAP);

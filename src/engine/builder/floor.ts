@@ -3,60 +3,65 @@
  * filter on every deck the builder returns. Each check reports its value, threshold and status.
  *
  * C1 legality and C5's partner count are rules; C2-C3 come from the derived energy model; C4, C6-C8
- * read the HEURISTIC plan catalogue and interaction network. Every threshold below is HEURISTIC and
- * was RE-TUNED on 2026-11-13 against the known-good / known-bad test of theory §4.8
+ * read the HEURISTIC plan catalogue and interaction network plus, since the calibration pass, MEASURED
+ * pair evidence (co-play lift in the synced corpus) and the archetype-core fallback. Every threshold
+ * below is HEURISTIC and tuned against the known-good / known-bad test of theory §4.8
  * (tests/engine/builder.test.ts): the 200 most-played fixture lists against 50 seeded random piles.
  *
- * Why the research defaults could not be kept (measured on those 200 lists): the network finds a
- * median of 1 strong pair per meta list (research C6 asks for 10, 29 of 200 lists reach it), 10 of 12
- * cards without a strong edge (C6 allows 2), 7 off-plan cards (C8 allows 3) and no primary plan at
- * all in more than 10% of lists (C4 asks for 80% assembly; 98 of 200 reach it). With the research
- * values only 14 of 200 lists passed (7%). The strong-edge recall of the network (HANDOVER, Task 5)
- * and the plan families missing from plans.json (Task 6) are the cause, not the lists. The re-tuned
- * values below are the tightest found that still fail every random pile (random piles never have more
- * than 2 strong pairs); see docs/HANDOVER.md "After Task 8" for the pass rates they reach.
+ * Calibration pass (2026-11-13): C6 was a count of strong edges (>= 0.5), and the network finds a median
+ * of 1 per meta list, so 71 of 200 real lists failed it. It is now graded COHESION (rating/deck.ts
+ * `cohesionOf`): every pair counts its graded mechanical weight (0.2 -> 0, 0.5 -> 1, x0.8) or its measured
+ * co-play weight, whichever is larger. C5 counts real PARTNERS (network/edges.ts `isPartner`: strong, or
+ * 0.4+ with a text-derived reason; band audit 85% strict held out). C4 also passes on the core of a known
+ * archetype (plans/detect.ts `archetypeCore`, measured). Before/after numbers: docs/HANDOVER.md
+ * "After the calibration pass".
  */
 import { energyModel } from '../maths/energy';
 import { deckIds } from '../novelty/novelty';
-import { detectPlans } from '../plans/detect';
-import { ENERGY, SYNERGY } from '../rating/constants';
-import { pairStats, names, nameOf } from '../rating/deck';
+import { isPartner } from '../network/edges';
+import { archetypeCore, detectPlans } from '../plans/detect';
+import { COHESION, ENERGY } from '../rating/constants';
+import { cohesionBar, cohesionOf, cohesionPairsText, pairStats, names, nameOf, synergyValueOf } from '../rating/deck';
 import { findFormat, formatName, isCheckedFormat } from '../rules/formats';
 import { isLegal, validateDeck } from '../rules/validate';
 import type { CardDb, Deck, EngineContext, FloorCheck, FloorReport } from '../types';
 
 /** Floor thresholds (HEURISTIC; research default in each comment). */
 export const FLOOR: Record<string, number> = {
-  /** C2: modelled energy spent of 21, at least (research 18.0; measured, kept). */
-  energySpent: 18.0,
-  /** C3: P(no play on turn 3), at most (research 10% from 15 lists; 28 of the 200 fixture lists exceed it). */
-  noPlayT3: 0.15,
+  /** C2: modelled energy spent of 21, at least (research 18.0 from 15 lists; calibration pass: 17.5, the 5th percentile of the
+   * 200 most-played fixture lists is 17.8: the model ignores generated cards and cost cuts, so real lists sit below 18). */
+  energySpent: 17.5,
+  /** C3: P(no play on turn 3), at most (research 10% from 15 lists; calibration pass: 25%, the 95th percentile of the 200 lists is 24%). */
+  noPlayT3: 0.25,
   /** C4: primary plan assembly by its key turn, at least (research 80%; here the plan threshold of spec §10). */
   planAssembly: 0.6,
-  /** C4/C6 alternative: pairs scoring at least `linkedEdge` that stand in for a plan family the catalogue lacks. */
-  linkedPairsAlt: 19,
+  /** C4 alternative: cohesion at least this high stands in for a plan family the catalogue lacks (random piles reach 6.0 at most). */
+  cohesionPlanAlt: 12,
   /** A pair at or above this score links two cards (rating SYNERGY.weakEdge). */
   linkedEdge: 0.2,
-  /** C6: strong pairs of 66, at least (research 10). */
-  strongPairs: 2,
-  /** C6: cards with no pair of `linkedEdge` or more, at most (research: at most 2 cards with no STRONG edge). */
+  /** C6: graded cohesion of 66 pairs, at least (research: 10 strong pairs; calibration pass); never below what random piles reach (`cohesionBar`). */
+  cohesion: COHESION.bar,
+  /** C6: cards with no pair of `linkedEdge` or more and no measured co-play pair, at most (research: at most 2 cards with no STRONG edge). */
   unlinkedCards: 5,
   /** C7: deck mean quality, at least (research 45, kept). */
   meanQuality: 45,
-  /** C7: single-card quality floor (research 25), waived with `waiverStrong` strong edges in the deck. */
+  /** C7: single-card quality floor (research 25), waived with `waiverStrong` partners in the deck (real partners or measured pairs of weight 0.5+). */
   cardQuality: 25,
   waiverStrong: 3,
   /** C7: cards under the single-card floor without the waiver, at most (research 0). */
   weakCards: 1,
   /** C8: cards both off-plan and unlinked, at most (research: at most 3 off-plan cards). */
   looseCards: 4,
-  /** C5: strong partners of a build-around card in the deck, at least (research 3, kept). */
+  /** C5: real partners (strong, or 0.4+ text-backed) of a build-around card in the deck, at least (research 3 strong; calibration pass). */
   buildAroundPartners: 3,
   /** Ablation (theory §4.8) for a card outside the plans: synergy sub-score drop, at least (engine review, 2026-11-13). */
   ablationSynergy: 0.05,
-  /** ... together with this many strong partners that are pieces of the primary plan. */
+  /** ... together with this many real partners that are pieces of the primary plan. */
   ablationPiecePartners: 2,
 };
+
+/** C6 bar for this database: FLOOR.cohesion, or the most cohesion seeded random piles reach when that is higher (rating/deck.ts cohesionNull). */
+export { cohesionBar };
 
 /** Games of the energy model behind C2-C3 (the rating's count, so both share the model's cache). */
 export const FLOOR_ENERGY_GAMES = ENERGY.ratingGames;
@@ -65,7 +70,7 @@ const pct = (x: number): string => `${Math.round(x * 100)}%`;
 const r1 = (x: number): string => (Math.round(x * 10) / 10).toFixed(1);
 const asDeck = (deck: Deck, ids: readonly string[]): Deck => ({ ...deck, cards: ids.map((defId) => ({ defId, locked: false })) });
 
-/** Pairs with score >= FLOOR.linkedEdge, and the cards in none of them. */
+/** Pairs with score >= FLOOR.linkedEdge, and the cards in none of them (mechanical edges only; the floor's C6 uses `cohesionOf`). */
 export function linkedStats(db: CardDb, ids: readonly string[]): { pairs: number; unlinked: string[] } {
   const set = new Set(ids);
   const linked = new Set<string>();
@@ -92,21 +97,24 @@ export function strongPartners(db: CardDb, card: string, ids: readonly string[])
   return out.sort();
 }
 
+/** Real partners of `card` among `ids` (network/edges.ts `isPartner`: strong, or 0.4+ with a text-derived reason). Mechanical only. */
+export function realPartners(db: CardDb, card: string, ids: readonly string[]): string[] {
+  const set = new Set(ids);
+  const out: string[] = [];
+  for (const e of db.edges(card)) {
+    const other = e.a === card ? e.b : e.a;
+    if (other !== card && set.has(other) && isPartner(e)) out.push(other);
+  }
+  return out.sort();
+}
+
 /**
- * The synergy sub-score value of rate.ts (before weighting), for the ablation check: sum of positive
- * pair scores, strong pairs and connected cards against targets scaled by the deck's pair count, minus
- * anti-synergy, clamped to [0, 1]. Kept equal to rate.ts `synergy()` (tested through rateDeck).
+ * The synergy sub-score value of rate.ts (before weighting) WITHOUT the mechanical cap, for the ablation check: graded cohesion
+ * (mechanical and measured pairs) against a target scaled by the deck's pair count, the share of linked
+ * cards, minus anti-synergy, clamped to [0, 1] (rating/deck.ts `synergyValueOf`).
  */
 export function synergyValue(db: CardDb, ids: readonly string[]): number {
-  const stats = pairStats(db, ids);
-  const pairScale = ids.length > 1 ? (ids.length * (ids.length - 1)) / 2 / 66 : 0;
-  const sumTarget = Math.max(0.5, SYNERGY.sumTarget * pairScale);
-  const strongTarget = Math.max(1, SYNERGY.strongTarget * pairScale);
-  const orphans = ids.filter((id) => (stats.best.get(id) ?? 0) < SYNERGY.weakEdge).length;
-  const connected = ids.length ? 1 - orphans / ids.length : 0;
-  const v = SYNERGY.wSum * Math.min(1, stats.synSum / sumTarget) + SYNERGY.wStrong * Math.min(1, stats.strong.length / strongTarget)
-    + SYNERGY.wConnected * connected - SYNERGY.antiPenalty * stats.antiSum;
-  return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : 0;
+  return synergyValueOf(cohesionOf(db, ids), ids.length, pairStats(db, ids).antiSum, false);
 }
 
 /**
@@ -121,21 +129,46 @@ const CONDITION_NEEDS: Record<string, { axes: string[]; text: string }> = {
   have_discarded_and_destroyed: { axes: ['discard', 'destroy'], text: 'discards and destroys your cards' },
 };
 
+export interface StatedNeed { anyOf: string[]; text: string; clause: string }
+
 /**
- * Stated conditions of `card` that no other card of `ids` can meet (engine review: Fantomex's
- * "If you've had cards discarded and destroyed" in a deck with no discard). One line per unmet condition.
+ * What a card states it needs from your other cards (HEURISTIC): its conditions on your past discards or destroys, and
+ * (calibration pass) its revive effects: "Revive one of your destroyed cards" (Phoenix Force) does nothing in a deck that
+ * never destroys its own cards, "discarded or destroyed" (Firelord) needs either. Each need lists the enabler axes of
+ * which any one other card meets it. Objective counts of your destroyed cards (Archangel) need a destroyer too.
  */
-export function unmetConditions(db: CardDb, card: string, ids: readonly string[]): string[] {
+export function statedNeeds(db: CardDb, card: string): StatedNeed[] {
   const f = db.features(card);
   if (!f) return [];
-  const out: string[] = [];
+  const out: StatedNeed[] = [];
   for (const cl of f.clauses) {
     for (const cond of cl.conditions) {
+      if (cond === 'obj:destroyed') { out.push({ anyOf: ['destroy'], text: 'destroys one of your cards', clause: cl.text }); continue; }
       const need = CONDITION_NEEDS[cond];
       if (!need) continue;
-      const missing = need.axes.filter((axis) => !ids.some((x) => x !== card && (db.features(x)?.axes[axis as keyof typeof f.axes]?.e ?? 0) > 0));
-      if (missing.length) out.push(`${nameOf(db, card)} needs a card that ${need.text} ("${cl.text}"), and no other card in the deck ${missing.length === need.axes.length ? 'does' : `is a ${missing.join(' or ')} enabler`}.`);
+      for (const axis of need.axes) out.push({ anyOf: [axis], text: need.text, clause: cl.text });
     }
+    for (const e of cl.effects) {
+      if (e.kind !== 'resurrect' || e.target !== 'own') continue;
+      const destroyed = /destroyed/.test(cl.text);
+      const discarded = /discarded/.test(cl.text);
+      if (destroyed && discarded) out.push({ anyOf: ['destroy', 'discard'], text: 'destroys or discards one of your cards', clause: cl.text });
+      else if (destroyed) out.push({ anyOf: ['destroy'], text: 'destroys one of your cards', clause: cl.text });
+      else if (discarded) out.push({ anyOf: ['discard'], text: 'discards one of your cards', clause: cl.text });
+    }
+  }
+  return out;
+}
+
+/**
+ * Stated needs of `card` that no other card of `ids` can meet (engine review: Fantomex's "If you've had cards discarded and
+ * destroyed" in a deck with no discard; calibration pass: Phoenix Force in a deck that destroys nothing). One line per unmet need.
+ */
+export function unmetConditions(db: CardDb, card: string, ids: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const need of statedNeeds(db, card)) {
+    const met = ids.some((x) => x !== card && need.anyOf.some((axis) => (db.features(x)?.axes[axis]?.e ?? 0) > 0));
+    if (!met) out.push(`${nameOf(db, card)} needs a card that ${need.text} ("${need.clause}"), and no other card in the deck does.`);
   }
   return [...new Set(out)];
 }
@@ -172,46 +205,55 @@ export function checkFloor(deck: Deck, ctx: EngineContext, buildAround: string[]
   const np3 = m.pNoPlay[3] ?? 1;
   checks.push(check('noPlayT3', 'No play on turn 3', np3, FLOOR.noPlayT3!, false, `No play on turn 3 in ${pct(np3)} of games (at most ${pct(FLOOR.noPlayT3!)}); ${m.curve.slice(0, 4).reduce((s, x) => s + x, 0)} cards cost 3 or less.`, 'derived'));
 
-  // C4 plan (heuristic families, exact assembly odds), with the network alternative.
+  // C4 plan (heuristic families, exact assembly odds), with two alternatives: the core of a known archetype (measured)
+  // and high cohesion (a package plans.json has no family for).
   const plans = detectPlans(asDeck(deck, ids), ctx);
-  const linked = linkedStats(db, ids);
+  const coh = cohesionOf(db, ids);
+  const core = archetypeCore(db, ids);
   const p = plans.primary;
   const asm = p?.assembly ?? 0;
-  const alt = linked.pairs >= FLOOR.linkedPairsAlt!;
   const planCheck = check('plan', 'Plan assembles', asm, FLOOR.planAssembly!, true,
     p ? `${p.name}: ${names(db, p.enablers)} with ${names(db, p.payoffs)}, ${pct(asm)} by turn ${p.keyTurn} (at least ${pct(FLOOR.planAssembly!)}).`
       : `No plan family reaches ${pct(FLOOR.planAssembly!)} assembly${plans.all[0] ? `; closest ${plans.all[0].name} at ${pct(plans.all[0].assembly)}` : ''}.`, 'heuristic');
-  if (!planCheck.passed && alt) {
+  if (!planCheck.passed && core) {
     planCheck.passed = true;
-    planCheck.detail += ` Passed by the network instead: ${linked.pairs} linked pairs (at least ${FLOOR.linkedPairsAlt}) stand in for a family plans.json lacks.`;
+    planCheck.provenance = 'measured';
+    planCheck.detail += ` Passed as a known archetype instead: the deck holds ${core.shared.length} of the ${core.core.length} most-played cards of ${core.name} (${names(db, core.shared)}; ${core.games} games in the synced snapshot, measured).`;
+  } else if (!planCheck.passed && coh.total >= FLOOR.cohesionPlanAlt!) {
+    planCheck.passed = true;
+    planCheck.detail += ` Passed by cohesion instead: ${r1(coh.total)} (at least ${FLOOR.cohesionPlanAlt}) stands in for a family plans.json lacks.`;
   }
   checks.push(planCheck);
 
-  // C6 synergy density (heuristic network).
-  const stats = pairStats(db, ids);
-  const strongCheck = check('strongPairs', 'Strong pairs', stats.strong.length, FLOOR.strongPairs!, true,
-    `${stats.strong.length} strong pairs of ${ids.length > 1 ? (ids.length * (ids.length - 1)) / 2 : 0}${stats.strong.length ? `: ${stats.strong.slice(0, 3).map((e) => `${nameOf(db, e.a)} + ${nameOf(db, e.b)}`).join('; ')}${stats.strong.length > 3 ? '; ...' : ''}` : ''} (at least ${FLOOR.strongPairs}).`, 'heuristic');
-  if (!strongCheck.passed && alt) {
-    strongCheck.passed = true;
-    strongCheck.detail += ` Passed by ${linked.pairs} linked pairs (at least ${FLOOR.linkedPairsAlt}).`;
-  }
-  checks.push(strongCheck);
-  checks.push(check('unlinked', 'Cards with no partner', linked.unlinked.length, FLOOR.unlinkedCards!, false,
-    linked.unlinked.length ? `${names(db, linked.unlinked)} ${linked.unlinked.length === 1 ? 'has' : 'have'} no pair of ${FLOOR.linkedEdge} or more in the deck (at most ${FLOOR.unlinkedCards}).` : 'Every card has a partner in the deck.', 'heuristic'));
+  // C6 cohesion (graded heuristic network plus measured co-play).
+  const n = ids.length > 1 ? (ids.length * (ids.length - 1)) / 2 : 0;
+  const bar = cohesionBar(db);
+  checks.push(check('cohesion', 'Cohesion', coh.total, bar, true,
+    `Cohesion ${r1(coh.total)} over ${n} pairs (at least ${r1(bar)}${bar > FLOOR.cohesion! ? ', the most that random piles of this pool reach' : ''}): ${r1(coh.mech)} from the interaction network (pairs of 0.2 or more, graded, heuristic)${coh.measured > 0.05 ? ` and ${r1(coh.measured)} more from co-play in the meta corpus (measured)` : ''}${coh.pairs.length ? `. Heaviest: ${cohesionPairsText(db, coh)}` : ''}.`,
+    coh.measured > coh.mech ? 'measured' : 'heuristic'));
+  checks.push(check('unlinked', 'Cards with no partner', coh.unlinked.length, FLOOR.unlinkedCards!, false,
+    coh.unlinked.length ? `${names(db, coh.unlinked)} ${coh.unlinked.length === 1 ? 'has' : 'have'} no pair of ${FLOOR.linkedEdge} or more and no measured co-play pair in the deck (at most ${FLOOR.unlinkedCards}).` : 'Every card has a partner in the deck.', 'heuristic'));
 
-  // C7 card quality (heuristic).
+  // C7 card quality (heuristic); the waiver counts real partners.
   const qs = ids.map((id) => ({ id, q: db.features(id)?.quality ?? 50 }));
   const mean = qs.length ? qs.reduce((s, x) => s + x.q, 0) / qs.length : 0;
   checks.push(check('meanQuality', 'Mean card quality', mean, FLOOR.meanQuality!, true, `Mean quality ${Math.round(mean)} of 100 (at least ${FLOOR.meanQuality}).`, 'heuristic'));
-  const weak = qs.filter((x) => x.q < FLOOR.cardQuality! && (stats.degree.get(x.id) ?? 0) < FLOOR.waiverStrong!);
+  const support = new Map(coh.partners);
+  for (const pr of coh.pairs) if (pr.measured >= 0.5 && !isPartner(pr.edge)) for (const x of [pr.a, pr.b]) support.set(x, (support.get(x) ?? 0) + 1);
+  const weak = qs.filter((x) => x.q < FLOOR.cardQuality! && (support.get(x.id) ?? 0) < FLOOR.waiverStrong!);
   checks.push(check('weakCards', 'Weak cards', weak.length, FLOOR.weakCards!, false,
-    weak.length ? `${weak.map((x) => `${nameOf(db, x.id)} (${Math.round(x.q)})`).join(', ')} under quality ${FLOOR.cardQuality} with fewer than ${FLOOR.waiverStrong} strong edges (at most ${FLOOR.weakCards}).` : `No card under quality ${FLOOR.cardQuality} without ${FLOOR.waiverStrong} strong edges.`, 'heuristic'));
+    weak.length ? `${weak.map((x) => `${nameOf(db, x.id)} (${Math.round(x.q)})`).join(', ')} under quality ${FLOOR.cardQuality} with fewer than ${FLOOR.waiverStrong} partners (at most ${FLOOR.weakCards}).` : `No card under quality ${FLOOR.cardQuality} without ${FLOOR.waiverStrong} partners.`, 'heuristic'));
 
-  // C8 loose cards (heuristic).
-  const off = new Set(plans.offPlan);
-  const loose = linked.unlinked.filter((id) => off.has(id));
+  // C8 loose cards (heuristic): off-plan and linked to nothing. Cards of a matched archetype core are on plan.
+  const off = new Set(plans.offPlan.filter((id) => !core?.shared.includes(id)));
+  const loose = coh.unlinked.filter((id) => off.has(id));
   checks.push(check('looseCards', 'Loose cards', loose.length, FLOOR.looseCards!, false,
     loose.length ? `${names(db, loose)} ${loose.length === 1 ? 'is' : 'are'} in no plan and linked to no card (at most ${FLOOR.looseCards}).` : 'Every card is in a plan or linked to another card.', 'heuristic'));
+
+  // Stated needs (calibration pass, heuristic): a card that revives or counts your destroyed or discarded cards needs a card that
+  // destroys or discards them.
+  const unmet = ids.flatMap((id) => unmetConditions(db, id, ids));
+  checks.push(check('needs', 'Unmet needs', unmet.length, 0, false, unmet.length ? unmet.join(' ') : 'Every card that needs a destroyed or discarded card has a card in the deck that provides it.', 'heuristic'));
 
   // C5 build-around (heuristic network and plans).
   for (const card of buildAround) {
@@ -219,9 +261,9 @@ export function checkFloor(deck: Deck, ctx: EngineContext, buildAround: string[]
       checks.push(check(`partners:${card}`, `${nameOf(db, card)} partners`, 0, FLOOR.buildAroundPartners!, true, `${nameOf(db, card)} is not in the deck.`, 'heuristic'));
       continue;
     }
-    const partners = strongPartners(db, card, ids);
+    const partners = realPartners(db, card, ids);
     checks.push(check(`partners:${card}`, `${nameOf(db, card)} partners`, partners.length, FLOOR.buildAroundPartners!, true,
-      `${nameOf(db, card)} has ${partners.length} strong partner${partners.length === 1 ? '' : 's'}${partners.length ? ` (${names(db, partners)})` : ''}; at least ${FLOOR.buildAroundPartners} needed.`, 'heuristic'));
+      `${nameOf(db, card)} has ${partners.length} partner${partners.length === 1 ? '' : 's'} in the interaction network${partners.length ? ` (${names(db, partners)})` : ''}; at least ${FLOOR.buildAroundPartners} needed (a partner is a strong edge, or 0.4+ with a text-derived reason; measured co-play does not count here).`, 'heuristic'));
     const rest = ids.filter((x) => x !== card);
     const withoutReport = detectPlans(asDeck(deck, rest), ctx);
     const without = withoutReport.primary;
@@ -232,7 +274,7 @@ export function checkFloor(deck: Deck, ctx: EngineContext, buildAround: string[]
     // Changed after the engine review (2026-11-13): a synergy drop of any size let decks pass whose primary plan did not use the
     // card at all (Sunspot in a Move deck, 98% assembly with or without it). The card must now be an enabler or payoff of the
     // primary or secondary plan and that plan must weaken without it, or the synergy sub-score must drop by
-    // `FLOOR.ablationSynergy` with at least `FLOOR.ablationPiecePartners` strong partners that are pieces of the primary plan
+    // `FLOOR.ablationSynergy` with at least `FLOOR.ablationPiecePartners` real partners that are pieces of the primary plan
     // (partners in the secondary plan only do not count: Sunspot's energy partners sat beside a Move deck) (HEURISTIC).
     const planOf = [plans.primary, plans.secondary].find((x) => x && (x.enablers.includes(card) || x.payoffs.includes(card))) ?? null;
     const pieces = new Set(plans.primary ? [...plans.primary.enablers, ...plans.primary.payoffs] : []);
@@ -248,7 +290,7 @@ export function checkFloor(deck: Deck, ctx: EngineContext, buildAround: string[]
     const matters = inPlan || material;
     const why = inPlan
       ? `${nameOf(db, card)} is ${planOf!.enablers.includes(card) ? 'an enabler' : 'a payoff'} of ${planOf!.name}: its strength goes ${pct(sBefore)} -> ${pct(sAfter)} without it`
-      : `${nameOf(db, card)} is ${planOf ? `in ${planOf.name} but the plan does not weaken without it` : `in neither the primary nor the secondary plan${plans.primary ? ` (${plans.primary.name})` : ''}`}; the synergy sub-score goes ${pct(yBefore)} -> ${pct(yAfter)} with ${piecePartners.length} strong partner${piecePartners.length === 1 ? '' : 's'} among the primary plan's pieces${piecePartners.length ? ` (${names(db, piecePartners)})` : ''}`;
+      : `${nameOf(db, card)} is ${planOf ? `in ${planOf.name} but the plan does not weaken without it` : `in neither the primary nor the secondary plan${plans.primary ? ` (${plans.primary.name})` : ''}`}; the synergy sub-score goes ${pct(yBefore)} -> ${pct(yAfter)} with ${piecePartners.length} partner${piecePartners.length === 1 ? '' : 's'} among the primary plan's pieces${piecePartners.length ? ` (${names(db, piecePartners)})` : ''}`;
     checks.push(check(`ablation:${card}`, `${nameOf(db, card)} is load-bearing`, matters ? 1 : 0, 1, true,
       `${why}${matters ? '.' : `: neither the plan nor a drop of ${pct(FLOOR.ablationSynergy!)} with ${FLOOR.ablationPiecePartners} primary-plan partners, so the card is decoration.`}`, 'heuristic'));
   }
