@@ -25,7 +25,7 @@ Last updated: 2026-11-13. Resumed at the owner's request. Stages 0-2 done. A sin
 | 1 | Design doc `docs/superpowers/specs/2026-11-12-snap-forge-design.md` and plan `docs/superpowers/plans/2026-11-12-snap-forge.md` | done |
 | 2 | Foundation and data: plan Tasks 1-2 | done (scaffold, sync steps, fixtures; `pnpm sync` was run for build 58.15.3) |
 | 3 | Engine: plan Tasks 3-9, adversarial reviewer after it | done (review fixed 2026-11-13: held-out strong-edge precision 82.5% strict / 100% lenient on 40; clause audit 124/125 parser, 125/125 with overrides; floor 87/200 meta lists, 0/50 random piles; brews 10/20; 404 tests) |
-| 4 | API and UI: plan Tasks 10-11 | not started |
+| 4 | API and UI: plan Tasks 10-11 | done (API: 16 route tests; UI: all screens of spec §16, driven in a real browser at 1440x900 with screenshots, images load from data/images; suite 433 tests) |
 | 5 | End-to-end tests and calibration: plan Task 12 | not started |
 | 6 | Final review by driving the real UI and looking at screenshots | not started |
 | 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | not started; only after stages 2-6 are done |

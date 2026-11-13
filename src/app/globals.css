@@ -1,4 +1,33 @@
 @import 'tailwindcss';
+/* Scanned explicitly: a `data` folder name is easy to catch in an ignore rule meant for the database folder. */
+@source './data';
+
+/*
+ * Snap Forge. A comic-print night palette: violet ink, card art on top. Energy blue and Power
+ * orange are the two colours the game itself uses for cost and Power, so they mean only that here.
+ * Novelty has its own hue family (teal -> violet -> magenta) and is never drawn in rating colours.
+ */
+@theme {
+  --color-ink: #15122a;
+  --color-panel: #1e1a38;
+  --color-raised: #28234b;
+  --color-line: #3a3466;
+  --color-text: #f1eefb;
+  --color-muted: #aaa4c9;
+  --color-faint: #716b97;
+  --color-energy: #4aa8ff;
+  --color-power: #ff9f2e;
+  --color-nov-meta: #8e89a8;
+  --color-nov-variant: #3fd0b8;
+  --color-nov-offmeta: #b184ff;
+  --color-nov-brew: #ff4fb4;
+  --color-r-top: #63e6a0;
+  --color-r-good: #d7e35a;
+  --color-r-mid: #f2b24c;
+  --color-r-low: #ff6b6b;
+  --font-display: 'Avenir Next Condensed', 'Futura', 'Arial Narrow', system-ui, sans-serif;
+  --font-sans: 'Avenir Next', Avenir, 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
 
 :root {
   color-scheme: dark;
@@ -10,7 +39,305 @@ body {
 }
 
 body {
-  background: #101116;
-  color: #ece9f2;
-  font-family: 'Avenir Next', Avenir, 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Headings and big numbers: heavy condensed italic, the lettering of a comic cover. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.005em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-energy);
+  outline-offset: 2px;
+}
+
+/* Halftone dots: used once, behind the deck header's dials. */
+.halftone {
+  background-image: radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.07) 1px, transparent 1.4px);
+  background-size: 7px 7px;
+}
+
+/* ---------------------------------------------------------------- buttons and inputs */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  height: 2rem;
+  padding: 0 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-line);
+  background: var(--color-raised);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) {
+  border-color: var(--color-muted);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn-primary {
+  background: var(--color-nov-brew);
+  border-color: var(--color-nov-brew);
+  color: #1d0717;
+}
+.btn-primary:hover:not(:disabled) {
+  border-color: #fff;
+}
+.btn-quiet {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-muted);
+}
+.btn-quiet:hover:not(:disabled) {
+  color: var(--color-text);
+  border-color: var(--color-line);
+}
+.btn-sm {
+  height: 1.65rem;
+  padding: 0 0.6rem;
+  font-size: 0.8rem;
+}
+
+.field {
+  height: 2rem;
+  padding: 0 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-line);
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+textarea.field {
+  padding: 0.5rem 0.6rem;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 0.8rem;
+}
+.field::placeholder {
+  color: var(--color-faint);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 1.6rem;
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  border: 1px solid var(--color-line);
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  background: transparent;
+}
+.chip[aria-pressed='true'] {
+  border-color: var(--color-nov-offmeta);
+  color: var(--color-text);
+  background: rgb(177 132 255 / 0.16);
+}
+
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.seg > button {
+  padding: 0 0.7rem;
+  height: 1.8rem;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+}
+.seg > button[aria-pressed='true'] {
+  background: var(--color-raised);
+  color: var(--color-text);
+}
+
+.tab {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  border-bottom: 2px solid transparent;
+}
+.tab[aria-selected='true'] {
+  color: var(--color-text);
+  border-color: var(--color-nov-offmeta);
+}
+
+/* ---------------------------------------------------------------- card tiles */
+
+/* The art is a 512 px square with a transparent margin; the card frame spans about 19%-81% across. */
+.card {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  container-type: inline-size;
+}
+.card > img,
+.card > button > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+}
+.card-missing {
+  position: absolute;
+  inset: 8% 19% 8% 19%;
+  border-radius: 8%;
+  border: 2px solid var(--color-line);
+  background: linear-gradient(160deg, var(--color-raised), var(--color-panel));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 10%;
+  gap: 0.3em;
+}
+.card-missing span {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  font-size: 10cqw;
+  line-height: 1.05;
+}
+.card-missing small {
+  font-size: 5.5cqw;
+  color: var(--color-faint);
+}
+
+/* Cost (energy blue) top left and Power (orange) top right, drawn because the art has neither. */
+.pip {
+  position: absolute;
+  top: 3.5%;
+  width: 19cqw;
+  height: 19cqw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 12.5cqw;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+.pip-cost {
+  left: 10%;
+  background: var(--color-energy);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+}
+.pip-power {
+  right: 10%;
+  background: var(--color-power);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1.2cqw rgb(0 0 0 / 0.25);
+}
+.pip-power.neg {
+  background: var(--color-r-low);
+}
+
+.tile-actions {
+  position: absolute;
+  bottom: 10%;
+  right: 20%;
+  display: flex;
+  gap: 4px;
+}
+.tile-btn {
+  min-width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 5px;
+  background: rgb(21 18 42 / 0.92);
+  border: 1px solid var(--color-line);
+  color: var(--color-text);
+  font-weight: 700;
+  font-size: 0.85rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tile-btn:hover {
+  border-color: var(--color-text);
+}
+.tile-btn-on {
+  background: var(--color-nov-offmeta);
+  color: #160d2b;
+  border-color: var(--color-nov-offmeta);
+}
+.card .tile-hover {
+  opacity: 0;
+}
+.card:hover .tile-hover,
+.card:focus-within .tile-hover {
+  opacity: 1;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-panel), var(--color-raised), var(--color-panel));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 10px;
+  inset: 8% 19%;
+  position: absolute;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Provenance mark next to a number: M measured, D derived, H heuristic. */
+.prov {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 3px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  font-style: normal;
+  font-family: var(--font-sans);
+  vertical-align: 0.1em;
+  cursor: help;
+  border: 1px solid currentColor;
+  flex-shrink: 0;
+}
+.prov-measured {
+  color: var(--color-nov-variant);
+}
+.prov-derived {
+  color: var(--color-energy);
+}
+.prov-heuristic {
+  color: var(--color-r-mid);
+}
+
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-line);
+  border-radius: 4px;
 }
