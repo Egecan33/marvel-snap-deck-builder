@@ -2,7 +2,7 @@
 
 This file is the single place a new session reads to continue the build if the previous one was cut off. Update it at every stage boundary, in the same commit as the stage's work.
 
-Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a check of the running UI by the orchestrator (Hela brews into a legal Discard deck sharing 3 of 12 cards with the Discard archetype; Kahhori is refused for having only 2 partners, a known recall gap). Stage 7 (package and publish, plan Task 13): the owner said yes to a public repository on 2026-11-13; see the stage table for where it stands.
+Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a check of the running UI by the orchestrator (Hela brews into a legal Discard deck sharing 3 of 12 cards with the Discard archetype; Kahhori is refused for having only 2 partners, a known recall gap). Stage 7 (package and publish, plan Task 13) done: public repository and release v0.1.0 on 2026-11-13, after the owner's yes; see the stage table. All stages are done.
 
 ## Owner's decisions (do not re-ask)
 
@@ -29,7 +29,7 @@ Last updated: 2026-11-13. Stages 0-6 done, including a calibration pass and a ch
 | 4 | API and UI: plan Tasks 10-11 | done (API: 16 route tests; UI: all screens of spec §16, driven in a real browser at 1440x900 with screenshots, images load from data/images; suite 433 tests) |
 | 5 | End-to-end tests and calibration: plan Task 12 | done (5 Playwright flows of spec §17 pass on a copy of the real synced database; `src/ingest/calibrate.ts` read-out; fixes at the source: Arthur Pendragon override, two dropped turn counters, edge-label and fix wording; suite 437 tests) |
 | 6 | Final review by driving the real UI and looking at screenshots | done (7 off-meta build-arounds brewed in the UI and read; screenshots in `docs/screenshots/`; UI fixes: picks layout, lock/score overlap, abort race, icon) |
-| 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | in progress: packaging done; local macOS arm64 bundle unzipped into a fresh folder, started with its starter, Data page opened, full sync from the packaged app (511 released cards, 620 images wanted, 598 downloaded, 22 tokens without art upstream, 12.5 min), brew around Morgan le Fay returned decks with images (rating 83, novelty 78, floor passed) |
+| 7 | Package like Commander Forge and publish on GitHub: plan Task 13 | done 2026-11-13. Public repo https://github.com/Egecan33/marvel-snap-deck-builder, release `v0.1.0` (https://github.com/Egecan33/marvel-snap-deck-builder/releases/tag/v0.1.0) with `SnapForge-0.1.0-macos-arm64.zip` (53.0 MB), `-macos-x64.zip` (55.1 MB), `-windows-x64.zip` (42.0 MB); the release workflow passed on the first tag on all three runners (typecheck, 451 tests, build, bundle smoke test). The released macOS arm64 zip was downloaded, unzipped, started with its starter and opened its Data page on port 3230. Not verified: the macOS Intel and Windows bundles were never run on a real machine (CI only); the builds are unsigned. Before the push, a local macOS arm64 bundle unzipped into a fresh folder, started with its starter, Data page opened, full sync from the packaged app (511 released cards, 620 images wanted, 598 downloaded, 22 tokens without art upstream, 12.5 min), brew around Morgan le Fay returned decks with images (rating 83, novelty 78, floor passed) |
 
 ## Stage 0 detail
 
