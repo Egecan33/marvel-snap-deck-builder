@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { computeNetwork } from '@/engine/features/compute';
-import { buildEdges, STRONG } from '@/engine/network/edges';
+import { buildEdges, gradedWeight, isPartner, PARTNER, STRONG } from '@/engine/network/edges';
 import type { CardEdge } from '@/engine/types';
 import { card, fixtureDb, fixtureOverrides } from '../helpers/fixture-db';
 
@@ -16,7 +16,11 @@ interface Audit {
   anti: { a: string; b: string; rule: string; why: string }[];
   heldOut: { seed: number; precision: { strict: number; lenient: number; true: number; false: number }; sample: Judged[] };
   reviewFalse: { a: string; b: string; why: string }[];
+  partnerBandDev: Band;
+  partnerBandDev2: Band;
+  partnerBand: Band;
 }
+interface Band { seed: number; precision: { strict: number; lenient: number; true: number; false: number }; sample: Judged[] }
 const audit = JSON.parse(readFileSync(fileURLToPath(new URL('../fixtures/edge-audit.json', import.meta.url)), 'utf8')) as Audit;
 
 const db = fixtureDb();
@@ -78,6 +82,49 @@ describe('edge audit (tests/fixtures/edge-audit.json)', () => {
       if (s.judgement === 'false') expect(edge(s.a, s.b)?.strong ?? false).toBe(false);
       else expect(edge(s.a, s.b)?.strong, `${s.a}|${s.b} judged ${s.judgement}`).toBe(true);
     }
+  });
+
+  it('calibration pass: partner band (0.4 to 0.5, text-backed) held-out precision at or above 80% strict; dev-round false edges fixed', () => {
+    const inBand = (a: string, b: string) => isPartner(edge(a, b));
+    const prec = (b: Band) => b.sample.filter((s) => s.judgement === 'true').length / b.sample.length;
+    for (const b of [audit.partnerBandDev, audit.partnerBandDev2, audit.partnerBand]) {
+      expect(b.sample).toHaveLength(40);
+      expect(b.precision.strict).toBeCloseTo(prec(b), 3);
+      for (const s of b.sample) expect(s.note.length, `${s.a}|${s.b}`).toBeGreaterThan(10);
+    }
+    // Held out: 34 true, 5 lenient, 1 false.
+    expect(prec(audit.partnerBand)).toBeGreaterThanOrEqual(0.8);
+    for (const s of audit.partnerBand.sample) if (s.judgement !== 'false') expect(inBand(s.a, s.b), `${s.a}|${s.b} judged ${s.judgement}`).toBe(true);
+    // Development rounds: every false edge was fixed at the source and is no longer a partner; true and lenient ones still are.
+    for (const s of [...audit.partnerBandDev.sample, ...audit.partnerBandDev2.sample]) {
+      expect(inBand(s.a, s.b), `${s.a}|${s.b} judged ${s.judgement}`).toBe(s.judgement !== 'false');
+    }
+    // No sample overlaps another.
+    const keys = [audit.sample, audit.heldOut.sample, audit.partnerBandDev.sample, audit.partnerBandDev2.sample, audit.partnerBand.sample].flat().map((s) => (s.a < s.b ? `${s.a}|${s.b}` : `${s.b}|${s.a}`));
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('calibration pass: isPartner and gradedWeight follow their definitions', () => {
+    for (const e of allEdges()) {
+      const text = e.reasons.some((r) => r.kind === 'synergy' && !r.heuristic);
+      expect(isPartner(e), `${e.a}|${e.b}`).toBe(e.strong || (e.score >= PARTNER && text));
+      const w = gradedWeight(e);
+      expect(w).toBeGreaterThanOrEqual(0);
+      expect(w).toBeLessThanOrEqual(1);
+      if (e.score <= 0.2) expect(w).toBe(0);
+      if (e.score >= STRONG && text) expect(w).toBe(1);
+    }
+  });
+
+  it('calibration pass: skills created by a card cannot feed payoffs that need the created card in play (Merlin x Mockingbird)', () => {
+    expect(edge('Merlin', 'Mockingbird')?.reasons.some((r) => r.rule === 'axis:created_cards') ?? false).toBe(false);
+    expect(edge('Clea', 'StrangeSupreme')?.reasons.some((r) => r.rule === 'axis:created_cards') ?? false).toBe(false);
+    // ... but they do count for cost payoffs (Quinjet), and a character creator still feeds Mockingbird.
+    expect(edge('MerlinOfAvalon', 'Quinjet')?.reasons.some((r) => r.rule === 'axis:created_cards')).toBe(true);
+    expect(edge('Mockingbird', 'MotherAskani')?.reasons.some((r) => r.rule === 'axis:created_cards')).toBe(true);
+    // Aunt May needs a Moveable ability, not a card that moves others directly.
+    expect(edge('AuntMay', 'IronFist')?.reasons.some((r) => r.rule === 'axis:move') ?? false).toBe(false);
+    expect(edge('AuntMay', 'Nocturne')?.reasons.some((r) => r.rule === 'axis:move')).toBe(true);
   });
 
   it.each(audit.reviewFalse.map((k) => [k.a, k.b, k.why]))('engine review: %s + %s is not strong (%s)', (a, b) => {

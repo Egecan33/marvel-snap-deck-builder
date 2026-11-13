@@ -23,9 +23,26 @@ export interface RawEdge {
   detail: string;
 }
 
-export interface Node { card: Card; f: CardFeatures; v: CardView }
+export interface Node {
+  card: Card; f: CardFeatures; v: CardView;
+  /** Every card this one creates is a skill (calibration pass): skills have no Power and leave play after resolving (mechanics §1.2 "Skill"). */
+  skillsOnly: boolean;
+}
 
-export const node = (card: Card, f: CardFeatures): Node => ({ card, f, v: view(card, f.clauses) });
+/**
+ * `skillIds`: defIds of every skill row in the pool, tokens included (`Card.isSkill` of synced data), so a
+ * creator whose `Card.tokens` are all skills (Merlin's Incantations, Clea's Flames of the Faltine, The Ancient
+ * One's Tao Mandala) is known to create skills. A creation sentence that says "skill" counts too.
+ */
+export const node = (card: Card, f: CardFeatures, skillIds?: ReadonlySet<string>): Node => {
+  const v = view(card, f.clauses);
+  const gens = effs(v.clauses, /^(gen_hand|gen_deck|gen_board|copy_card)$/);
+  const bySentence = gens.length > 0 && gens.every((h) => /\bskills?\b/.test(h.clause.text));
+  const byTokens = !!skillIds && card.tokens.length > 0 && card.tokens.every((t) => skillIds.has(t)) && !gens.some((h) => h.effect.kind === 'copy_card');
+  // A skill that copies itself (Techno-Organic Virus: "Copy this to your hand") creates a skill.
+  const selfCopy = card.isSkill && gens.length > 0 && gens.every((h) => h.effect.kind === 'copy_card' && /\bthis\b/.test(h.clause.text));
+  return { card, f, v, skillsOnly: bySentence || byTokens || selfCopy };
+};
 
 /** `Name: "text"` with the clause that matters, or the card's stat line when it has no text. */
 export function quote(card: Card, text?: string): string {
@@ -95,6 +112,9 @@ function pairOk(axis: string, A: Node, B: Node): boolean {
     case 'move': {
       // "for each Moveable card you've played" (Spider Sense) counts cards that are Moveable themselves, not cards that make others Moveable.
       if (hasTag(b.tags, /^scale:moveable_played$/) && !hasTrigger(a.clauses, /^moveable$/)) return false;
+      // "If you used a Moveable ability" (Aunt May) needs a Moveable card or a Moveable grant, not a card that moves others directly
+      // (Iron Fist, Araña): calibration pass, partner-band audit.
+      if (/used a Moveable ability/.test(B.card.text)) return hasTrigger(a.clauses, /^moveable$/) || effs(a.clauses, /^grant_moveable$/).length > 0;
       const counts = hasTag(b.tags, /^(scale:move_count|scale:moveable_played|cond:moved_recently)$/) || hasTrigger(b.clauses, /^on_other_move$/)
         || /that moved this turn|that last moved/.test(B.card.text);
       if (!counts && !hasTrigger(b.clauses, /^on_reveal$/) && effs(a.clauses, /^move$/).some((h) => h.effect.selectors.includes('sel:on_reveal_card'))
@@ -158,6 +178,15 @@ function pairOk(axis: string, A: Node, B: Node): boolean {
       const z = createdZones(a);
       const t = B.card.text;
       if (/Rocks/.test(t)) return /\bRocks?\b/.test(A.card.text);
+      // Calibration pass (partner-band audit): a creator of skills only (Merlin, Clea, The Ancient One) cannot feed a payoff that needs
+      // the created card in play or with Power (Mockingbird, Strange Supreme, Eson, Victoria Hand): skills have no Power and are banished
+      // after resolving (mechanics §1.2). Cost, "play created cards" and draw payoffs still count them.
+      if (A.skillsOnly && !/created cards cost|total Cost of created cards|created card from your deck/.test(t)) return false;
+      // "Your created cards cost 1 less. (minimum 1)" (Quinjet) does nothing for copies that already cost 0 (Swarm).
+      if (/created cards cost \d less\. \(minimum 1\)/.test(t)) {
+        const gens = effs(a.clauses, /^(gen_hand|gen_deck|gen_board|copy_card)$/);
+        if (gens.length && gens.every((h) => /that cost 0/.test(h.clause.text))) return false;
+      }
       if (/created in your hand|created card from your hand/.test(t)) return z.has('hand');
       if (/created card from your deck/.test(t)) return z.has('deck');
       if (/created cards cost|total Cost of created cards/.test(t)) return z.has('hand') || z.has('deck');
@@ -206,7 +235,18 @@ function pairOk(axis: string, A: Node, B: Node): boolean {
     case 'deck_top': {
       // A payoff that banishes the top card throws the preparation away (Kraglin x Spider-Man Noir); only a stacked card feeds it. Anti in templates.ts.
       if (banishesTop(b) && !effs(a.clauses, /^deck_stack$/).length) return false;
-      const top = effs(a.clauses, /^(buff|cost_reduce|power_set|deck_stack)$/, /^(own_deck|both)$/).every((h) => h.effect.kind === 'deck_stack' || /top/.test(h.clause.text));
+      const prep = effs(a.clauses, /^(buff|cost_reduce|power_set|deck_stack)$/, /^(own_deck|both)$/);
+      const stacks = prep.some((h) => h.effect.kind === 'deck_stack');
+      // Calibration pass (partner-band audit): copying a deck card's TEXT (Iron Lad) gains nothing from its Power or Cost, only from
+      // choosing which card is on top; and a Cost cut on deck cards (Zabu) matters only to a puller with an "or less" Cost filter
+      // (Malekith), not to one that puts the card into play whatever it costs (Blink).
+      if (effs(b.clauses, /^copy_text$/, /^own_deck$/).length && !stacks) return false;
+      if (!stacks && prep.length && prep.every((h) => h.effect.kind === 'cost_reduce') && !/-Cost or less|costs? \d or less/.test(B.card.text)) return false;
+      // A payoff that reads the top card's Cost (Monstro Octopus) gains from choosing the top card, not from Power buffs or Cost cuts;
+      // setting a deck card's Power to 0 (Anti-Venom) weakens every payoff that puts it into play or compares Power (Ares, Jubilee).
+      if (/reduced by the cost of your deck's top card/i.test(B.card.text) && !stacks) return false;
+      if (!stacks && prep.length && prep.every((h) => /Power[^.]*to 0\b/.test(h.clause.text))) return false;
+      const top = prep.every((h) => h.effect.kind === 'deck_stack' || /top/.test(h.clause.text));
       return !top || deckPuller(b) === 'top';
     }
     case 'draw': {

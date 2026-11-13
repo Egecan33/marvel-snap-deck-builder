@@ -1,13 +1,13 @@
 {
- "about": "Edge audit (plan Task 5, spec §8.3). `sample`: 60 edges drawn without replacement from the strong edges of the fixture pool, sorted by 'a|b', with mulberry32(seed) indexes; each judged by reading both cards' synced texts: true = a real interaction a player can use, lenient = true but conditional or weak, false = wrong. Precision is over the 60. Rounds before this one (seeds 20261113-20261117) were used to find and fix rules and are not counted. After this sample, the three `false` patterns were fixed (they are no longer strong); that fix changed the strong set by -18 edges and added 4 (Silver Surfer with Jack Flag, Sebastian Shaw, Superior Spider-Man, Venus), which were read and judged true. `knownTrue` must be strong, `knownUnrelated` must not, `anti` must come out as anti-synergy.",
+ "about": "Edge audit (plan Task 5, spec §8.3). `sample`: 60 edges drawn without replacement from the strong edges of the fixture pool, sorted by 'a|b', with mulberry32(seed) indexes; each judged by reading both cards' synced texts: true = a real interaction a player can use, lenient = true but conditional or weak, false = wrong. Precision is over the 60. Rounds before this one (seeds 20261113-20261117) were used to find and fix rules and are not counted. After this sample, the three `false` patterns were fixed (they are no longer strong); that fix changed the strong set by -18 edges and added 4 (Silver Surfer with Jack Flag, Sebastian Shaw, Superior Spider-Man, Venus), which were read and judged true. Calibration pass (2026-11-13): Clea x Zombie Mister Fantastic was re-judged lenient -> false on a game fact, not a rule change: Flames of the Faltine is a skill, and skills have no Power and are banished after resolving (mechanics.md §1.2 Skill row, official patch notes), so 'Give 4 of your created cards +1 Power' cannot buff it; strict precision is unchanged, lenient 95.0% -> 93.3%. `knownTrue` must be strong, `knownUnrelated` must not, `anti` must come out as anti-synergy.",
  "seed": 20261118,
  "strongEdgesAtSampling": 1062,
  "precision": {
   "strict": 0.883,
-  "lenient": 0.95,
+  "lenient": 0.933,
   "true": 53,
-  "lenient_count": 4,
-  "false": 3
+  "lenient_count": 3,
+  "false": 4
  },
  "sample": [
   {
@@ -189,8 +189,8 @@
     "axis:created_cards",
     "axis:empower"
    ],
-   "judgement": "lenient",
-   "note": "Clea only creates Flames of the Faltine after it is Empowered; Zombie Mister Fantastic then buffs that created card. Real but conditional."
+   "judgement": "false",
+   "note": "Clea only creates Flames of the Faltine after it is Empowered. Flames of the Faltine is a skill (isSkill): no Power, banished after resolving (mechanics §1.2), so Zombie Mister Fantastic's +1 Power to created cards cannot land on it. Re-judged lenient -> false in the calibration pass; first judged as a created character."
   },
   {
    "a": "AgentVenom",
@@ -1201,5 +1201,1127 @@
    "b": "Kraglin",
    "why": "Kraglin banishes the top card Anti-Venom prepares."
   }
- ]
+ ],
+ "partnerBandDev": {
+  "about": "Calibration pass (2026-11-13): 40 edges drawn with mulberry32(20261201) from the text-backed partner band (score 0.4 to under 0.5, at least one non-heuristic synergy reason; 1,421 edges) outside every earlier sample, read against both synced texts. This is a DEVELOPMENT sample: its six false edges were fixed at the source (network/rules.ts: skill-only creators, Moveable ability, deck Cost cuts and text copies) and no longer exist. Precision before the fixes is recorded; the held-out band sample is `partnerBand`.",
+  "seed": 20261201,
+  "bandEdgesAtSampling": 1421,
+  "precision": {
+   "strict": 0.7,
+   "lenient": 0.85,
+   "true": 28,
+   "lenient_count": 6,
+   "false": 6
+  },
+  "sample": [
+   {
+    "a": "CullObsidian",
+    "b": "Hood",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Cull Obsidian can only be played where you have a 1-Cost card; The Hood is a 1-Cost card."
+   },
+   {
+    "a": "Blink",
+    "b": "Zabu",
+    "rules": [
+     "axis:deck_top"
+    ],
+    "judgement": "false",
+    "note": "Zabu cuts the Cost of 4-Cost deck cards; Blink puts a deck card into play, where its Cost no longer matters. Fixed: a Cost cut on deck cards pairs only with an 'or less' Cost filter."
+   },
+   {
+    "a": "AuntMay",
+    "b": "SamWilson",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Cap's Shield is Moveable, so moving it is a Moveable ability Aunt May counts; the shield is a token, so it is conditional on drawing Sam Wilson early."
+   },
+   {
+    "a": "MarvelBoy",
+    "b": "Yondu",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Marvel Boy gives 3 of your 1-Cost cards +1 Power; Yondu costs 1."
+   },
+   {
+    "a": "Gorr",
+    "b": "PsylockeFracturedFrontier",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Psylocke Fractured Frontier gives 5-Cost or more cards in hand -1 Cost; Gorr costs 6."
+   },
+   {
+    "a": "Batroc",
+    "b": "HydraStomper",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Batroc moves to follow a moving card; Hydra Stomper counts each time your cards moved."
+   },
+   {
+    "a": "SinisterSix",
+    "b": "Surtur",
+    "rules": [
+     "filter:power"
+    ],
+    "judgement": "lenient",
+    "note": "Sinister Six has 12 Power and Surtur grows after you play a 10+ Power card; Sinister Six usually arrives by merging rather than being played."
+   },
+   {
+    "a": "Kraven",
+    "b": "Mercury",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Mercury is Moveable once; Kraven gains +2 when a card moves to his location."
+   },
+   {
+    "a": "Agamotto",
+    "b": "Skaar",
+    "rules": [
+     "filter:power"
+    ],
+    "judgement": "true",
+    "note": "Skaar costs 2 less for each of your cards with 10 or more Power; Agamotto has 10."
+   },
+   {
+    "a": "AstralProjection",
+    "b": "NicholasScratch",
+    "rules": [
+     "axis:skills"
+    ],
+    "judgement": "true",
+    "note": "Astral Projection is a skill; Nicholas Scratch gains +1 after you play a skill."
+   },
+   {
+    "a": "Sentinel",
+    "b": "VictoriaHand",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Sentinel adds another Sentinel to your hand; Victoria Hand gives cards created in your hand +2 Power."
+   },
+   {
+    "a": "Kahhori",
+    "b": "SubMariner",
+    "rules": [
+     "axis:empower"
+    ],
+    "judgement": "true",
+    "note": "Kahhori gives your cards in play Power; Sub-Mariner triggers when Empowered in play."
+   },
+   {
+    "a": "Merlin",
+    "b": "Mockingbird",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "false",
+    "note": "Merlin's Incantations are skills (no Power, banished after resolving), so they are never created cards in play for Mockingbird. Fixed: skill-only creators pair only with cost, play and draw payoffs."
+   },
+   {
+    "a": "HowardTheDuck",
+    "b": "KaZar",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Ka-Zar gives your 1-Cost cards +1 Power; Howard the Duck costs 1."
+   },
+   {
+    "a": "Eson",
+    "b": "TheAncientOne",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "false",
+    "note": "Tao Mandala is a skill; Eson puts a created card from hand into play, which a skill cannot stay as. Fixed with the skill-only creator rule."
+   },
+   {
+    "a": "AuntMay",
+    "b": "IronFist",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "false",
+    "note": "Iron Fist moves your next card directly; that is not a Moveable ability, which Aunt May needs. Fixed: Aunt May pairs only with Moveable cards or Moveable grants."
+   },
+   {
+    "a": "Mockingbird",
+    "b": "MotherAskani",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Mother Askani's copy is a created card; played, it lowers Mockingbird's Cost."
+   },
+   {
+    "a": "AntiPolarMagneto",
+    "b": "Chameleon",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "lenient",
+    "note": "Magneto puts 3 or 4-Cost cards from hand into the other locations; Chameleon is a 3-Cost body whose own ability rarely matters there."
+   },
+   {
+    "a": "MotherAskani",
+    "b": "Quinjet",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Mother Askani creates a copy in hand; Quinjet makes created cards cost 1 less."
+   },
+   {
+    "a": "KingEitri",
+    "b": "MarvelBoy",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Marvel Boy buffs 1-Cost cards; King Eitri costs 1."
+   },
+   {
+    "a": "Hercules",
+    "b": "Silk",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Silk moves itself after cards are played here; Hercules moves a card that moves to him again. Extra moves, but not a reward Silk itself uses."
+   },
+   {
+    "a": "Mirage",
+    "b": "StrangeSupreme",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Mirage's copy is a created card; once played, Strange Supreme can merge it."
+   },
+   {
+    "a": "Hercules",
+    "b": "MadameWeb",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Madame Web makes a card Moveable; Hercules moves it again when it arrives. Extra moves for move counters, no direct reward."
+   },
+   {
+    "a": "AuntMay",
+    "b": "Nocturne",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Nocturne is Moveable once; using it is a Moveable ability for Aunt May."
+   },
+   {
+    "a": "AbsorbingMan",
+    "b": "Zabu",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Zabu gives 4-Cost deck cards -1 Cost; Absorbing Man costs 4."
+   },
+   {
+    "a": "ArnimZola",
+    "b": "Mockingbird",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Arnim Zola's copies at the other locations are created cards in play for Mockingbird."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "Zero",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Black Swan makes your 1-Cost cards cost 0; Zero costs 1."
+   },
+   {
+    "a": "Frigga",
+    "b": "VictoriaHand",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Frigga adds a copy to your hand, a card created in hand for Victoria Hand."
+   },
+   {
+    "a": "DoctorOctopusFracturedFrontier",
+    "b": "GambitHorseman",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Doctor Octopus Fractured Frontier gets a random character (created); playing it counts toward Gambit's created-Cost objective."
+   },
+   {
+    "a": "MarvelBoy",
+    "b": "MistyKnight",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Marvel Boy buffs 1-Cost cards; Misty Knight is a 1-Cost body."
+   },
+   {
+    "a": "Hercules",
+    "b": "JeffTheBabyLandShark",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Jeff is Moveable; Hercules moves him again. Extra moves only."
+   },
+   {
+    "a": "CullObsidian",
+    "b": "IronFist",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Iron Fist is a 1-Cost card that unlocks Cull Obsidian's location."
+   },
+   {
+    "a": "Infinaut",
+    "b": "Skaar",
+    "rules": [
+     "filter:power"
+    ],
+    "judgement": "true",
+    "note": "The Infinaut has 20 Power, lowering Skaar's Cost by 2."
+   },
+   {
+    "a": "Clea",
+    "b": "StrangeSupreme",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "false",
+    "note": "Flames of the Faltine is a skill; Strange Supreme merges created cards in play. Fixed with the skill-only creator rule."
+   },
+   {
+    "a": "IronPatriot",
+    "b": "Mockingbird",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Iron Patriot adds a random card to hand; played, it is a created card in play."
+   },
+   {
+    "a": "CullObsidian",
+    "b": "Vulture",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Vulture is a 1-Cost card for Cull Obsidian's restriction."
+   },
+   {
+    "a": "Quinjet",
+    "b": "RedShift",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Red Shift adds a random card (created); Quinjet makes it cost 1 less."
+   },
+   {
+    "a": "Arana",
+    "b": "AuntMay",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "false",
+    "note": "Araña moves your next card; not a Moveable ability. Fixed with the Moveable-ability rule."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "JimHammond",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Black Swan makes 1-Cost cards cost 0; Jim Hammond costs 1."
+   },
+   {
+    "a": "Prowler",
+    "b": "Topaz",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Topaz moves cards played at her location; Prowler's Thief's Tools cost 0 if a card moved last turn."
+   }
+  ]
+ },
+ "partnerBandDev2": {
+  "about": "Calibration pass, second band round: 40 edges drawn with mulberry32(20261202) from the partner band after the first round's fixes (1,304 edges), outside every earlier sample. Drawn as a held-out sample, it measured 77.5% strict (below the 80% bar), so it became a second DEVELOPMENT round: its two false patterns (a skill that copies itself; Quinjet's minimum-1 discount on cards that already cost 0) were fixed in network/rules.ts. The held-out band sample is `partnerBand`.",
+  "seed": 20261202,
+  "bandEdgesAtSampling": 1304,
+  "precision": {
+   "strict": 0.775,
+   "lenient": 0.95,
+   "true": 31,
+   "lenient_count": 7,
+   "false": 2
+  },
+  "sample": [
+   {
+    "a": "Odin",
+    "b": "Surtur",
+    "rules": [
+     "filter:power"
+    ],
+    "judgement": "true",
+    "note": "Odin has 10 Power; Surtur gains +2 after you play a 10+ Power card."
+   },
+   {
+    "a": "Nimrod",
+    "b": "ZombieMisterFantastic",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Nimrod's copies at the other locations are created cards in play; Zombie Mister Fantastic gives 4 created cards +1 Power."
+   },
+   {
+    "a": "Deadpool",
+    "b": "WadeWilson",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Wade Wilson is replaced by a 1-Cost card from hand or deck with +2 Power; Deadpool costs 1."
+   },
+   {
+    "a": "Prowler",
+    "b": "RocketAndGroot",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Rocket and Groot is Moveable once; after it moves, Prowler's Thief's Tools cost 0."
+   },
+   {
+    "a": "Alioth",
+    "b": "FrankieRaye",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Nova Frankie Raye doubles after the next 6-Cost card you play; Alioth costs 6."
+   },
+   {
+    "a": "Batroc",
+    "b": "SpiderPunk",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Spider-Punk moves; Batroc follows it for +2 Power."
+   },
+   {
+    "a": "TechnoOrganicVirus",
+    "b": "ZombieMisterFantastic",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "false",
+    "note": "Techno-Organic Virus is a skill and copies itself: a skill has no Power and is banished, so Zombie Mister Fantastic cannot buff it. Fixed: a skill that copies itself is a skill-only creator."
+   },
+   {
+    "a": "HydraStomper",
+    "b": "SpiderMan",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Spider-Man moves to another location; Hydra Stomper counts your moves."
+   },
+   {
+    "a": "Quinjet",
+    "b": "ScarletWitchQueenOfChaos",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "lenient",
+    "note": "The skill Scarlet Witch adds costs 0 the turn it arrives (Quinjet's minimum 1 does nothing then); later turns it is 1 cheaper."
+   },
+   {
+    "a": "Kraven",
+    "b": "Martyr",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Martyr moves at the end of the game to a losing location; if that is Kraven's, Kraven gains +2. The trigger is real but incidental."
+   },
+   {
+    "a": "Kraven",
+    "b": "Viv",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Viv Vision moves when it is not winning; it reaches Kraven's location only sometimes."
+   },
+   {
+    "a": "BuckyBarnes",
+    "b": "ZombieMisterFantastic",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "The Winter Soldier that replaces Bucky is a created card in play for Zombie Mister Fantastic."
+   },
+   {
+    "a": "Gorgon",
+    "b": "Moonstone",
+    "rules": [
+     "axis:ongoing_amp"
+    ],
+    "judgement": "true",
+    "note": "Moonstone copies the Ongoing of a 3-Cost or less card here; Gorgon's created-card tax applies twice."
+   },
+   {
+    "a": "BetaRayBill",
+    "b": "Mockingbird",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Stormbreaker is a created card; played, it lowers Mockingbird's Cost."
+   },
+   {
+    "a": "MerlinOfAvalon",
+    "b": "Quinjet",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "The Grand Design is a created skill; Quinjet's discount applies to created cards whatever their type."
+   },
+   {
+    "a": "UncleBen",
+    "b": "ZombieMisterFantastic",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "The Spider-Man that replaces Uncle Ben is a created card in play."
+   },
+   {
+    "a": "Sparky",
+    "b": "Topaz",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Topaz moves cards played at her location; Sparky gives the card that last moved +2 and moves it back."
+   },
+   {
+    "a": "SpiderHam",
+    "b": "WadeWilson",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Spider-Ham is a 1-Cost card Wade Wilson can pull with +2 Power."
+   },
+   {
+    "a": "Kraven",
+    "b": "Nightcrawler",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Nightcrawler is Moveable once; Kraven gains +2 when it moves to him."
+   },
+   {
+    "a": "MilesMorales",
+    "b": "WebSling",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Web Sling makes a card Moveable; once it moves, Miles Morales costs 1."
+   },
+   {
+    "a": "Kraven",
+    "b": "SpiderManBrandNewDay",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Spider-Man Brand New Day is Moveable twice; Kraven gains when it arrives."
+   },
+   {
+    "a": "Korg",
+    "b": "WerewolfByNight",
+    "rules": [
+     "axis:multi_play"
+    ],
+    "judgement": "true",
+    "note": "Korg is a 1-Cost On Reveal card; Werewolf By Night moves to it and gains +2."
+   },
+   {
+    "a": "KarenPage",
+    "b": "Venus",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Karen Page gives a 3-Cost character +2 Power; Venus (3-Cost) is then Empowered and adds +1 more."
+   },
+   {
+    "a": "Eson",
+    "b": "FrankieRaye",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Eson costs 6; Frankie Raye doubles after the next 6-Cost card."
+   },
+   {
+    "a": "GambitHorseman",
+    "b": "Helicarrier",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "lenient",
+    "note": "Helicarrier fills your hand with created cards only when discarded; playing them advances Gambit's objective."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "MoiraX",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Black Swan makes 1-Cost cards cost 0; Moira X costs 1."
+   },
+   {
+    "a": "VictoriaHand",
+    "b": "WhiteQueen",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "White Queen copies a card into your hand; Victoria Hand gives it +2 Power."
+   },
+   {
+    "a": "SamWilson",
+    "b": "Sparky",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Cap's Shield is Moveable; after it moves, Sparky gives it +2 and moves it back."
+   },
+   {
+    "a": "MariaHill",
+    "b": "Mockingbird",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Maria Hill adds a random card; played, it is a created card in play for Mockingbird."
+   },
+   {
+    "a": "Hercules",
+    "b": "Kraven",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Hercules moves a card that arrives at his location onward; it reaches Kraven's location only sometimes."
+   },
+   {
+    "a": "ScorpionBrandNewDay",
+    "b": "USAgent",
+    "rules": [
+     "axis:affliction"
+    ],
+    "judgement": "true",
+    "note": "U.S. Agent gives 4-Cost or more cards here -3 Power; Scorpion Brand New Day doubles reductions on enemy cards."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "Swarm",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Swarm costs 1; Black Swan makes it cost 0."
+   },
+   {
+    "a": "Kang",
+    "b": "StrangeSupreme",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Kang becomes 4 created Kangs; played, Strange Supreme can merge one."
+   },
+   {
+    "a": "MajorVictory",
+    "b": "ZombieMisterFantastic",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Major Victory adds created Guardians to your hand; played, Zombie Mister Fantastic buffs them."
+   },
+   {
+    "a": "Agony",
+    "b": "CullObsidian",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "lenient",
+    "note": "Agony is a 1-Cost card that unlocks Cull Obsidian's location, then merges into the next card played there."
+   },
+   {
+    "a": "BlackKnight",
+    "b": "VictoriaHand",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "lenient",
+    "note": "The Ebony Blade is created in your hand, but only after a discard."
+   },
+   {
+    "a": "Snowguard",
+    "b": "ZombieMisterFantastic",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "The Hawk and Bear auroras are created characters (not skills) that Zombie Mister Fantastic can buff."
+   },
+   {
+    "a": "Moonstone",
+    "b": "RavonnaRenslayer",
+    "rules": [
+     "axis:ongoing_amp"
+    ],
+    "judgement": "true",
+    "note": "Moonstone gains Ravonna Renslayer's Ongoing cost cut, so 1-or-less Power cards cost less again."
+   },
+   {
+    "a": "Quinjet",
+    "b": "Swarm",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "false",
+    "note": "Swarm's copies already cost 0; Quinjet's discount has a minimum of 1, so it does nothing for them. Fixed: Quinjet-style minimum-1 discounts skip creators whose cards cost 0."
+   },
+   {
+    "a": "Silk",
+    "b": "Sparky",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Silk moves itself after cards are played at its location; Sparky gives it +2 and moves it back."
+   }
+  ]
+ },
+ "partnerBand": {
+  "about": "Calibration pass HELD-OUT sample of the partner band: 40 edges drawn with mulberry32(20261203) from the edges scoring 0.4 to under 0.5 with at least one non-heuristic synergy reason (1,298 edges after the two development rounds `partnerBandDev`, `partnerBandDev2`), outside every earlier sample. Read against both synced texts and NOT used to change any rule. These edges now count as partners (builder C5) and, graded, toward cohesion; they still are not strong, so novelty and gems ignore them.",
+  "seed": 20261203,
+  "bandEdgesAtSampling": 1298,
+  "precision": {
+   "strict": 0.85,
+   "lenient": 0.975,
+   "true": 34,
+   "lenient_count": 5,
+   "false": 1
+  },
+  "sample": [
+   {
+    "a": "BlackSwan",
+    "b": "Yondu",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Black Swan makes 1-Cost cards cost 0; Yondu costs 1."
+   },
+   {
+    "a": "Sentinel",
+    "b": "ZombieMisterFantastic",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "The second Sentinel is created; played, Zombie Mister Fantastic buffs it."
+   },
+   {
+    "a": "FrankieRaye",
+    "b": "Infinaut",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "The Infinaut costs 6; Frankie Raye doubles after the next 6-Cost card."
+   },
+   {
+    "a": "AntiPolarMagneto",
+    "b": "Misery",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Anti-Polar Magneto puts 3 or 4-Cost cards from hand out; Misery is a 4/8 body for it."
+   },
+   {
+    "a": "MadameWeb",
+    "b": "Prowler",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Madame Web makes a card Moveable; after it moves, Prowler's Thief's Tools cost 0."
+   },
+   {
+    "a": "CullObsidian",
+    "b": "MerlinOfAvalon",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Merlin of Avalon is a 1-Cost card for Cull Obsidian's restriction."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "Nightcrawler",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Nightcrawler costs 1; Black Swan makes it 0."
+   },
+   {
+    "a": "PeniParker",
+    "b": "Quinjet",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "SP//dr is created in your hand; Quinjet makes it cost 1 less."
+   },
+   {
+    "a": "HydraStomper",
+    "b": "Topaz",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Topaz moves cards played at her location; Hydra Stomper counts moves."
+   },
+   {
+    "a": "CullObsidian",
+    "b": "SquirrelGirl",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Squirrel Girl is a 1-Cost card for Cull Obsidian's restriction."
+   },
+   {
+    "a": "AgentCoulson",
+    "b": "Eson",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Agent Coulson adds created cards to your hand; Eson puts one into play."
+   },
+   {
+    "a": "MotherAskani",
+    "b": "VictoriaHand",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Mother Askani's copy is created in hand; Victoria Hand gives it +2 Power."
+   },
+   {
+    "a": "GambitHorseman",
+    "b": "MoleMan",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Mole Man adds Rocks (created); playing them advances Gambit's created-Cost objective."
+   },
+   {
+    "a": "Nocturne",
+    "b": "Prowler",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Nocturne is Moveable once; after it moves, Prowler's tools cost 0."
+   },
+   {
+    "a": "Snowguard",
+    "b": "WerewolfByNight",
+    "rules": [
+     "axis:multi_play"
+    ],
+    "judgement": "true",
+    "note": "Snowguard is a 1-Cost On Reveal card; Werewolf By Night moves to it and gains +2."
+   },
+   {
+    "a": "Heimdall",
+    "b": "Prowler",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Heimdall moves your cards, usually on the last turn; Prowler's discount needs a turn after that."
+   },
+   {
+    "a": "Nakia",
+    "b": "SubMariner",
+    "rules": [
+     "axis:empower"
+    ],
+    "judgement": "true",
+    "note": "Nakia gives your hand +1 Power; Sub-Mariner in hand is Empowered and adds a card."
+   },
+   {
+    "a": "Valentina",
+    "b": "VictoriaHand",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Valentina's 6-Cost card is created in hand; Victoria Hand gives it +2 Power."
+   },
+   {
+    "a": "Daken",
+    "b": "VictoriaHand",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "The Muramasa Shard is a created character in your hand; Victoria Hand gives it +2 Power."
+   },
+   {
+    "a": "AntiPolarMagneto",
+    "b": "WerewolfByNight",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Werewolf By Night is a 3-Cost card Anti-Polar Magneto can put out."
+   },
+   {
+    "a": "Gilgamesh",
+    "b": "MajesticWingbeat",
+    "rules": [
+     "axis:empower"
+    ],
+    "judgement": "true",
+    "note": "Majestic Wingbeat gives a hand card +3; played, it is a card with increased Power for Gilgamesh."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "Quinjet",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Quinjet costs 1; Black Swan makes it 0."
+   },
+   {
+    "a": "Mockingbird",
+    "b": "PeniParker",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "false",
+    "note": "SP//dr merges into another card when it is revealed, so it is never a created card in play when Mockingbird counts them."
+   },
+   {
+    "a": "MilesMorales",
+    "b": "SpiderMan2099",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "true",
+    "note": "Spider-Man 2099 is Moveable; after it moves, Miles Morales costs 1."
+   },
+   {
+    "a": "DrDoom",
+    "b": "StrangeSupreme",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Doctor Doom's DoomBots are created cards in play; Strange Supreme merges one."
+   },
+   {
+    "a": "HydraBob",
+    "b": "MaryJane",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Hydra Bob moves only if a player Snapped; then Mary Jane gives it +1."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "Snowguard",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Snowguard costs 1; Black Swan makes it 0."
+   },
+   {
+    "a": "Nimrod",
+    "b": "StrangeSupreme",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Nimrod's copies are created cards in play for Strange Supreme to merge."
+   },
+   {
+    "a": "MoleMan",
+    "b": "StrangeSupreme",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Mole Man's Rocks are created; played, Strange Supreme merges one."
+   },
+   {
+    "a": "MerlinOfAvalon",
+    "b": "WerewolfByNight",
+    "rules": [
+     "axis:multi_play"
+    ],
+    "judgement": "true",
+    "note": "Merlin of Avalon is a 1-Cost On Reveal card; Werewolf By Night moves to it for +2."
+   },
+   {
+    "a": "FrankieRaye",
+    "b": "Orka",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Orka costs 6; Frankie Raye doubles after it."
+   },
+   {
+    "a": "Mockingbird",
+    "b": "MoonGirl",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Moon Girl copies your hand; played copies are created cards in play for Mockingbird."
+   },
+   {
+    "a": "Batroc",
+    "b": "Hercules",
+    "rules": [
+     "axis:move"
+    ],
+    "judgement": "lenient",
+    "note": "Batroc follows a moving card; Hercules moves an arriving card on, so Batroc can follow again. Extra moves only."
+   },
+   {
+    "a": "Caiera",
+    "b": "Moonstone",
+    "rules": [
+     "axis:ongoing_amp"
+    ],
+    "judgement": "lenient",
+    "note": "Moonstone gains Caiera's 'can't be destroyed' Ongoing; it repeats the same protection and only matters if Caiera leaves."
+   },
+   {
+    "a": "KaZar",
+    "b": "Zero",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Ka-Zar gives 1-Cost cards +1 Power; Zero costs 1."
+   },
+   {
+    "a": "BlackSwan",
+    "b": "Kingpin",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Kingpin costs 1; Black Swan makes it 0."
+   },
+   {
+    "a": "MerlinOfAvalon",
+    "b": "WadeWilson",
+    "rules": [
+     "filter:cost"
+    ],
+    "judgement": "true",
+    "note": "Wade Wilson pulls a 1-Cost card such as Merlin of Avalon with +2 Power."
+   },
+   {
+    "a": "Mercury",
+    "b": "Moonstone",
+    "rules": [
+     "axis:ongoing_amp"
+    ],
+    "judgement": "lenient",
+    "note": "Moonstone gains Mercury's 'enemy cards here can't move', the same lock at the same location; it only matters if Mercury leaves."
+   },
+   {
+    "a": "MoiraX",
+    "b": "VictoriaHand",
+    "rules": [
+     "axis:created_cards"
+    ],
+    "judgement": "true",
+    "note": "Moira X's copy of your opening hand is created in hand; Victoria Hand gives it +2 Power."
+   },
+   {
+    "a": "RedWolfFracturedFrontier",
+    "b": "SubMariner",
+    "rules": [
+     "axis:empower"
+    ],
+    "judgement": "true",
+    "note": "Red Wolf's Quickdraw gives your hand +1 Power; Sub-Mariner is Empowered in hand."
+   }
+  ]
+ }
 }

@@ -78,5 +78,7 @@ export function computeNetwork(input: { cards: readonly Card[]; meta: MetaIndex 
   const byId: Record<string, CardFeatures> = {};
   for (const f of features) byId[f.defId] = f;
   const released = input.cards.filter((c) => c.cardClass === 'released');
-  return { features, edges: buildEdges(released, byId) };
+  // Skill tokens (Incantations, Tao Mandala) are not released, so the skill set is read from the whole pool.
+  const skillIds = new Set(input.cards.filter((c) => c.isSkill).map((c) => c.defId));
+  return { features, edges: buildEdges(released, byId, skillIds) };
 }

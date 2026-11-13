@@ -22,6 +22,34 @@ import { templateEdges } from './templates';
 export const STRONG = 0.5;
 const HEURISTIC_CAP = STRONG - 0.01;
 
+/**
+ * Partner level (calibration pass, HEURISTIC): an edge scoring at least this much with at least one
+ * text-derived synergy reason is a real partner for the builder's C5 check and for cohesion, though not
+ * strong. Fan-out damping keeps broad but real relations (Quinjet x a card creator, Surtur x a 10-Power
+ * card) between 0.4 and 0.5. Hand audit of that band (tests/fixtures/edge-audit.json `partnerBand`,
+ * held out): 34 true, 5 lenient, 1 false of 40, strict 85%. Strong edges keep 0.5; novelty and gems
+ * still use strong edges only.
+ */
+export const PARTNER = 0.4;
+
+/** Does the edge name a real partner (strong, or at the partner level with a text-derived reason)? */
+export function isPartner(e: CardEdge | undefined): boolean {
+  if (!e) return false;
+  if (e.strong) return true;
+  return e.score >= PARTNER && e.reasons.some((r) => r.kind === 'synergy' && !r.heuristic);
+}
+
+/**
+ * Graded mechanical weight of a pair for cohesion (calibration pass, HEURISTIC): 0 at a score of 0.2 or
+ * less, rising linearly to 1 at STRONG, so 0.3-0.5 edges count in part instead of not at all. An edge
+ * whose synergy reasons are all heuristic counts half.
+ */
+export function gradedWeight(e: CardEdge | undefined): number {
+  if (!e || e.score <= 0.2) return 0;
+  const w = Math.min(1, (e.score - 0.2) / (STRONG - 0.2));
+  return e.reasons.some((r) => r.kind === 'synergy' && !r.heuristic) ? w : w / 2;
+}
+
 const round3 = (x: number): number => Math.round(x * 1000) / 1000;
 
 /**
@@ -42,18 +70,20 @@ function combine(values: number[]): number {
 const pairKey = (a: string, b: string): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
 
 /** Raw rule firings over released cards that have features. */
-export function ruleFirings(cards: readonly Card[], featuresById: Readonly<Record<string, CardFeatures>>): RawEdge[] {
+export function ruleFirings(cards: readonly Card[], featuresById: Readonly<Record<string, CardFeatures>>, skillIds?: ReadonlySet<string>): RawEdge[] {
+  const skills = skillIds ?? new Set(cards.filter((c) => c.isSkill).map((c) => c.defId));
   const nodes: Node[] = [];
   for (const c of cards) {
     const f = featuresById[c.defId];
-    if (f) nodes.push(node(c, f));
+    if (f) nodes.push(node(c, f, skills));
   }
   nodes.sort((x, y) => (x.card.defId < y.card.defId ? -1 : x.card.defId > y.card.defId ? 1 : 0));
   return [...axisEdges(nodes), ...templateEdges(nodes)];
 }
 
-export function buildEdges(cards: readonly Card[], featuresById: Readonly<Record<string, CardFeatures>>): CardEdge[] {
-  const raw = ruleFirings(cards, featuresById);
+/** `skillIds`: every skill defId of the pool, tokens included (defaults to the skills among `cards`). */
+export function buildEdges(cards: readonly Card[], featuresById: Readonly<Record<string, CardFeatures>>, skillIds?: ReadonlySet<string>): CardEdge[] {
+  const raw = ruleFirings(cards, featuresById, skillIds);
   // Deduplicate a rule firing twice for the same ordered pair (two clauses of one card).
   const seen = new Set<string>();
   const firings = raw.filter((e) => {
