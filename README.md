@@ -50,17 +50,21 @@ Every number in the UI carries a tag: **M** measured, **D** derived, **H** heuri
 - **Derived** (exact maths over the deck): draw and assembly odds (hypergeometric), the energy model's expected energy spent and no-play odds (a seeded simulation with simple play rules).
 - **Heuristic** (rules written for this tool, not calibrated against win rates): card quality, the interaction network's pair scores, plan families, the deck rating and its weights, the power floor thresholds, swap order, matchup and tech advice.
 
-What was measured about the heuristics (fixture of 511 released cards and 300 real meta lists, November 2026):
+What was measured about the heuristics (fixture of 511 released cards and 300 real meta lists, November 2026; calibration pass 2026-11-13, real database of 4,763 lists in brackets):
 
 | Check | Result | Target in the design |
 |---|---|---|
 | Parser, hand-read clause audit (125 cards) | 124/125 parser alone, 125/125 with reviewed overrides | 95% |
 | Strong interaction edges, held-out hand check (40) | 82.5% strictly true, 100% at least lenient | 85% strict |
-| Rating: top-200 meta lists rated 60+ | 91 of 200 (45.5%); random piles under 40: 41 of 50 | 95% / 100% |
-| Power floor: top-200 meta lists pass | 98 of 200 (49%); random piles passing: 0 of 50 | 95% / 0% |
-| Brew around 20 random off-meta cards | 10 decks, 10 explicit refusals (too few strong partners) | 12 decks |
+| Partner edges (0.4 to 0.5, text-backed), held-out hand check (40) | 85% strictly true, 97.5% at least lenient (after two development rounds that fixed 8 false patterns) | 80% strict |
+| Power floor: top-200 meta lists pass | 170 of 200, 85% [181 of 200]; random piles passing: 0 of 50 (1 of 150 in a second set) | 95% / 0% |
+| Rating: top-200 meta lists rated 60+ | 181 of 200, 90.5% [185]; random piles under 40: 47 of 50 [47] | 95% / 100% |
+| Rating distributions, 10th / 50th / 90th percentile | meta lists 60 / 85 / 92 [67 / 85 / 93]; brews 70 / 80 / 83 [78 / 84 / 88]; random piles 16 / 23 / 36 [18 / 27 / 37] | brews not above the meta median |
+| Brew around 20 random off-meta cards | 13 decks, 7 refusals with reasons [real read-out: 6 of 10] | at most 8 refused |
+| Results of one build | differ by at least 4 cards (was 1) | 4 |
+| Tuned build around the 5 most-played archetype cores | 5 of 5 keep the archetype's plan (was 1 of 5) | 5 |
 
-The rating is a construction check: it says a deck has a plan, a curve, linked cards and answers, not that it wins. A brew and a meta list with the same rating are not known to be equally strong. Novelty is never merged into the rating. See `docs/STATUS.md` for the known limitations.
+The rating is a construction check: it says a deck has a plan, a curve, linked cards and answers, not that it wins. Pairs that meta players are measured to play together count fully; pairs only the interaction network sees earn at most half of the synergy credit, so a brew rates below a proven list built as well. The rating is not calibrated against win rates. Novelty is never merged into the rating and never uses measured co-play as evidence of an interaction. See `docs/STATUS.md` for the known limitations.
 
 ## Data sources and caveats
 
