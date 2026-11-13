@@ -11,13 +11,15 @@ export interface ServerState {
   generation: number;
   /** Named caches; each server module owns its keys. Cleared by `resetServerState`. */
   caches: Map<string, unknown>;
+  /** Clock override (tests pin it to the fixture's capture time); null means `Date.now`. */
+  clock: (() => number) | null;
 }
 
 const KEY = '__snapForgeState';
 const holder = globalThis as unknown as Record<string, ServerState | undefined>;
 
 export function serverState(): ServerState {
-  return (holder[KEY] ??= { db: null, generation: 0, caches: new Map() });
+  return (holder[KEY] ??= { db: null, generation: 0, caches: new Map(), clock: null });
 }
 
 /** A cache slot that lives until the next `resetServerState` / `dropCaches`. */
@@ -38,5 +40,16 @@ export function dropCaches(): void {
 export function resetServerState(db: Db | null = null): void {
   const s = serverState();
   s.db = db;
+  dropCaches();
+}
+
+/** The server's clock: card classes and saved timestamps use it. */
+export function serverNow(): number {
+  return serverState().clock?.() ?? Date.now();
+}
+
+/** Tests: pin the clock (or pass null to use the real one again). */
+export function setClock(clock: (() => number) | null): void {
+  serverState().clock = clock;
   dropCaches();
 }

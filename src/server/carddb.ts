@@ -4,7 +4,7 @@ import { createCardDb, createMetaIndex, toCard, type UntappedCardRow } from '@/e
 import type { TextFix } from '@/engine/text/clean';
 import type { CardDb, CardEdge, CardFeatures, FormatDef, MetaArchetype, MetaIndex, MetaInfo, MetaList, PlanDef } from '@/engine/types';
 import { openDb, type Db } from './db';
-import { cacheSlot, dropCaches, serverState } from './state';
+import { cacheSlot, dropCaches, serverNow, serverState } from './state';
 
 /** Below this many lists the 30-day snapshot is preferred when one was synced (spec §6.1). */
 const THIN_SNAPSHOT_LISTS = 1000;
@@ -80,7 +80,7 @@ interface Cached { db: CardDb; nextRelease: number }
  * The cached CardDb. Card classes depend on the clock, so the cache is rebuilt once the next
  * scheduled release date has passed, as well as after every sync (`invalidateCardDb`).
  */
-export function loadCardDb(db: Db = getDb(), now: number = Date.now()): CardDb {
+export function loadCardDb(db: Db = getDb(), now: number = serverNow()): CardDb {
   let cached = cacheSlot<Cached | null>('carddb', () => null);
   if (!cached || now >= cached.nextRelease) {
     const built = buildCardDb(db, now);
